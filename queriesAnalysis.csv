@@ -1,0 +1,1 @@
+"SELECT * FROM xxx WHERE exclude = 1","net.sf.jsqlparser.expression.operators.relational.EqualsTo","net.sf.jsqlparser.expression.BinaryExpression","net.sf.jsqlparser.schema.Column","net.sf.jsqlparser.expression.LongValue","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
