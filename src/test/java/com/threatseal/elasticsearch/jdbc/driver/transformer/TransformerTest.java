@@ -50,7 +50,8 @@ public class TransformerTest {
 
     @Test
     public void testMultiPartTableNameWithServerNameAndDatabaseName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM [server-name\\server-instance].databaseName..tableName", List.of()) instanceof SearchSourceBuilder);
+        assertTrue(Transformer.transform("SELECT columnName "
+                + "FROM [server-name\\server-instance].databaseName..tableName", List.of()) instanceof SearchSourceBuilder);
     }
 
     @Test

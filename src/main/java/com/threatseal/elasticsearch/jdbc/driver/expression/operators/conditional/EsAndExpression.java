@@ -15,7 +15,7 @@ import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 
-public class EsAndExpression extends EsBinaryExpression {
+public class EsAndExpression extends EsConditionalOperator {
     private boolean useOperator = false;
 
     public EsAndExpression() {

@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.sf.jsqlparser.JSQLParserException;
@@ -70,43 +71,22 @@ public class Transformer {
 
         try {
             //System.out.println("grouping sets " + groupByElement.getGroupingSets());
-            groupByElement.getGroupByExpressionList().accept(new ItemsListVisitorAdapter() {
-                @Override
-                public void visit(SubSelect subSelect) {
-                    //System.out.println("subselect " + subSelect);
-                    csvList.add("\"" + SubSelect.class.getName() + "\"");
-                }
+            EsExpressionVisitorAdapter visitorAdapter = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY);
+            groupByElement.getGroupByExpressionList().accept(visitorAdapter);
 
-                @Override
-                public void visit(NamedExpressionList namedExpressionList) {
-                    //System.out.println("namedExpressionList " + namedExpressionList);
-                    csvList.add("\"" + NamedExpressionList.class.getName() + "\"");
-                }
+            System.out.println(visitorAdapter.getStack());
 
-                @Override
-                public void visit(ExpressionList expressionList) {
-                    //System.out.println("expressionList " + expressionList);
-                    String[] expressions = expressionList.toString().split(",");
-                    csvList.add("\"" + ExpressionList.class.getName() + "\"");
-                    for (String expression : expressions) {
-                        sourceBuilder.aggregation(AggregationBuilders.terms(expression)
-                                .field(expression)
-                        );
-                    }
-                }
-
-                @Override
-                public void visit(MultiExpressionList multiExprList) {
-                    //System.out.println("multiExprList " + multiExprList);
-                    for (ExpressionList expressionList : multiExprList.getExprList()) {
-                        //System.out.println("list " + expressionList);
-                        csvList.add("\"" + ExpressionList.class.getName() + "\"");
-                        visit(expressionList);
-                    }
-                }
-            });
+            while (!visitorAdapter.getStack().empty()) {
+                String term = visitorAdapter.getStack().pop().toString();
+                //System.out.println("GROUP BY term " + term);
+                sourceBuilder.aggregation(AggregationBuilders
+                        .terms(term)
+                        .field(term)
+                );
+            }
         } catch (Exception e) {
-
+            System.out.println("GROUP BY  exception " + e.getMessage());
+            e.printStackTrace(System.out);
         }
     }
 
@@ -172,31 +152,18 @@ public class Transformer {
             }
 
         } catch (Exception e) {
-
+            System.out.println("order by exception " + e.getMessage());
+            e.printStackTrace(System.out);
         }
 
     }
 
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
         //System.out.println("Transformer.sqlQueryToElasticSearchQuery sql " + sql + " params " + params);
-        Select stmt = new Select();
-        try {
-            stmt = (Select) CCJSqlParserUtil.parse(sql);
-        } catch (Exception e) {
-
-        }
+        
+        sql=sql.replace("\n", " ");
+        Select stmt = (Select) CCJSqlParserUtil.parse(sql);
         PlainSelect selectStatement = (PlainSelect) stmt.getSelectBody();
-
-        Expression where = selectStatement.getWhere();
-        //System.out.println("where expression " + where);
-
-        where(where);
-
-        GroupByElement groupByElement = selectStatement.getGroupBy();
-        //System.out.println("group by element " + groupByElement);
-        if (groupByElement != null) {
-            groupBy(groupByElement);
-        }
 
         List<OrderByElement> orderByElements = selectStatement.getOrderByElements();
 
@@ -215,10 +182,21 @@ public class Transformer {
             }
         }
 
+        Expression where = selectStatement.getWhere();
+        //System.out.println("where expression " + where);
+
+        where(where);
+
+        GroupByElement groupByElement = selectStatement.getGroupBy();
+        //System.out.println("group by element " + groupByElement);
+        if (groupByElement != null) {
+            groupBy(groupByElement);
+        }
+
         if (sql.contains("\"")) {
-            System.out.println("sql " + sql);
+//            System.out.println("sql " + sql);
             sql = sql.replace("\"", "\\\"");
-            System.out.println("new sql " + sql);
+//            System.out.println("new sql " + sql);
         }
         csvList.add(0, "\"" + new String(sql.getBytes(), StandardCharsets.UTF_8) + "\"");
 

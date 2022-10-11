@@ -57,11 +57,11 @@ public abstract class EsBinaryExpression extends BranchImpl {
 
     public abstract String getStringExpression();
 
-    public <E extends Expression> E getLeftExpression(Class<E> type) {
+    public <E extends Branch> E getLeftExpression(Class<E> type) {
         return type.cast(getLeftExpression());
     }
 
-    public <E extends Expression> E getRightExpression(Class<E> type) {
+    public <E extends Branch> E getRightExpression(Class<E> type) {
         return type.cast(getRightExpression());
     }
 }

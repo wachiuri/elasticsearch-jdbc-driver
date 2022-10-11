@@ -31,5 +31,6 @@ public class EsEqualsTo extends EsComparisonOperator {
     @Override
     public EsEqualsTo withRightExpression(Branch expression) {
         return (EsEqualsTo) super.withRightExpression(expression);
-    }
+    }    
+    
 }
