@@ -11,14 +11,19 @@ package com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.expression.BranchImpl;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 
 /**
  * A "BETWEEN" expr1 expr2 statement
  */
-public class EsBetween extends BranchImpl {
+public class EsBetween extends BranchImpl implements EsQueryBuilder {
 
     private Branch leftExpression;
     private boolean not = false;
@@ -68,6 +73,11 @@ public class EsBetween extends BranchImpl {
                 + betweenExpressionEnd;
     }
 
+    @Override
+    public Object toObject() {
+        return toString();
+    }
+
     public EsBetween withLeftExpression(Branch leftExpression) {
         this.setLeftExpression(leftExpression);
         return this;
@@ -99,4 +109,22 @@ public class EsBetween extends BranchImpl {
     public <E extends Expression> E getLeftExpression(Class<E> type) {
         return type.cast(getLeftExpression());
     }
+
+    @Override
+    public QueryBuilder toQueryBuilder() {
+
+        RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery(getLeftExpression().toString());
+
+        rangeQueryBuilder.gte(getBetweenExpressionStart().toObject())
+                .lte(getBetweenExpressionEnd().toObject());
+
+        if (isNot()) {
+            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery()
+                    .mustNot(rangeQueryBuilder);
+
+            return boolQueryBuilder;
+        }
+        return rangeQueryBuilder;
+    }
+
 }

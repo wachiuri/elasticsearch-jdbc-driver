@@ -10,8 +10,12 @@
 package com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational;
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 
-public class EsEqualsTo extends EsComparisonOperator {
+public class EsEqualsTo extends EsComparisonOperator implements EsQueryBuilder {
 
     public EsEqualsTo() {
         super("=");
@@ -31,6 +35,12 @@ public class EsEqualsTo extends EsComparisonOperator {
     @Override
     public EsEqualsTo withRightExpression(Branch expression) {
         return (EsEqualsTo) super.withRightExpression(expression);
-    }    
-    
+    }
+
+    @Override
+    public MatchQueryBuilder toQueryBuilder() {
+
+        return QueryBuilders.matchQuery(getLeftExpression().toString(), getRightExpression().toObject());
+    }
+
 }

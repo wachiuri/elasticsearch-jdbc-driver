@@ -60,6 +60,7 @@ import com.threatseal.elasticsearch.jdbc.driver.expression.operators.arithmetic.
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.arithmetic.EsMultiplication;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.arithmetic.EsSubtraction;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.conditional.EsAndExpression;
+import com.threatseal.elasticsearch.jdbc.driver.expression.operators.conditional.EsConditionalOperator;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.conditional.EsOrExpression;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.conditional.EsXorExpression;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational.EsBetween;
@@ -88,6 +89,7 @@ import com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational.
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational.EsSimilarToExpression;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsBoolQueryBuilder;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsMatchQueryBuilder;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsRangeQueryBuilder;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsTermQueryBuilder;
 import com.threatseal.elasticsearch.jdbc.driver.schema.EsColumn;
@@ -96,8 +98,6 @@ import com.threatseal.elasticsearch.jdbc.driver.statement.EsOrderByElement;
 import com.threatseal.elasticsearch.jdbc.driver.statement.create.table.EsColumnDefinition;
 import com.threatseal.elasticsearch.jdbc.driver.statement.select.EsAllColumns;
 import com.threatseal.elasticsearch.jdbc.driver.statement.select.EsSelectExpressionItem;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.sf.jsqlparser.expression.AllValue;
 import net.sf.jsqlparser.expression.AnalyticExpression;
 import net.sf.jsqlparser.expression.AnyComparisonExpression;
@@ -218,8 +218,6 @@ import org.elasticsearch.index.query.QueryBuilder;
  */
 public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
 
-    private static final Logger logger = Logger.getLogger(EsExpressionVisitorAdapter.class.getName());
-
     private final SQLStatementSection sQLStatementSection;
 
     private final Stack<Branch> stack = new Stack();
@@ -248,8 +246,12 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         }
 
         System.out.println("message " + message);
-        System.out.print("stack top value ");
-        System.out.println(this.stack.size() > 0 ? this.stack.peek().toString() : "EMPTY");
+        System.out.print("stack [");
+        stack.forEach(action -> {
+            System.out.print(action + ":" + action.getClass().getSimpleName() + ",");
+        });
+        System.out.println("]");
+        System.out.println("stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
         //this.stack.push(method.getParameters()[0]);
         this.list.add("\"" + method.getParameters()[0].getType().getName() + "\"");
     }
@@ -415,21 +417,11 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        Branch parent;
-
-        if (stack.isEmpty()) {
-            parent = new EsBoolQueryBuilder(expr.getStringExpression());
-        } else {
-            Branch grandParent = this.stack.pop();
-            
-            if(grandParent instanceof EsBoolQueryBuilder){
-                
-            }
-            parent = new EsAndExpression();
-        }
+        Branch parent = new EsAndExpression();
         this.stack.push(parent);
 
         visitBinaryExpression(expr);
+
     }
 
     @Override
@@ -455,47 +447,19 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        EsBetween esBetween = new EsBetween().withNot(expr.isNot());
+        EsBetween parent = new EsBetween().withNot(expr.isNot());
 
-        this.stack.push(esBetween);
+        this.stack.push(parent);
 
         expr.getLeftExpression().accept(this);
-        esBetween.setLeftExpression(this.stack.pop());
+        parent.setLeftExpression(this.stack.pop());
 
         expr.getBetweenExpressionStart().accept(this);
-        esBetween.setBetweenExpressionStart(this.stack.pop());
+        parent.setBetweenExpressionStart(this.stack.pop());
 
         expr.getBetweenExpressionEnd().accept(this);
-        esBetween.setBetweenExpressionEnd(this.stack.pop());
+        parent.setBetweenExpressionEnd(this.stack.pop());
 
-        Branch parent;
-        EsRangeQueryBuilder esRangeQueryBuilder = new EsRangeQueryBuilder()
-                .withBetweenExpressionEnd(esBetween.getBetweenExpressionEnd())
-                .withBetweenExpressionStart(esBetween.getBetweenExpressionStart())
-                .withLeftExpression(esBetween.getLeftExpression());
-
-        this.stack.pop();
-
-        if (this.stack.isEmpty()) {
-
-            if (expr.isNot()) {
-                EsBoolQueryBuilder notBoolQueryBuilder = new EsBoolQueryBuilder("NOT");
-                notBoolQueryBuilder.setLeftExpression(esRangeQueryBuilder);
-                parent = notBoolQueryBuilder;
-
-            } else {
-                parent = esRangeQueryBuilder;
-            }
-        } else {
-            Branch grandParent = this.stack.peek();
-            if (grandParent instanceof EsBoolQueryBuilder) {
-                parent = esRangeQueryBuilder;
-            } else {
-                parent = esBetween;
-            }
-
-        }
-        this.stack.push(parent);
     }
 
     @Override
@@ -503,22 +467,12 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        Branch parent;
+        Branch parent = new EsEqualsTo();
 
-        if (this.stack.isEmpty()) {
-            parent = new EsTermQueryBuilder();
-        } else {
-            Branch grandParent = this.stack.peek();
-            if (grandParent instanceof EsBoolQueryBuilder) {
-                parent = new EsTermQueryBuilder();
-            } else {
-                parent = new EsEqualsTo();
-            }
-
-        }
         this.stack.push(parent);
 
         visitBinaryExpression(expr);
+
     }
 
     @Override
@@ -1497,6 +1451,12 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
     protected void visitBinaryExpression(BinaryExpression expr) {
         log(new Object() {
         }.getClass().getEnclosingMethod());
+
+        System.out.print("BinaryExpression LEFT ");
+        System.out.print(expr.getLeftExpression());
+        System.out.print(" " + expr.getStringExpression() + " ");
+        System.out.print(" RIGHT ");
+        System.out.println(expr.getRightExpression());
 
         EsBinaryExpression parent = (EsBinaryExpression) this.stack.peek();
 

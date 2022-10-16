@@ -196,7 +196,7 @@ public class TransformerReportTest {
                     + "AND timestamp BETWEEN '2022-10-04 08:32:13' "
                     + "AND '2022-10-04 14:32:13' "
                     + "GROUP BY `Hostname.keyword` "
-                    + "ORDER BY `Hostname.keyword` DESC"
+                    + "ORDER BY `Hostname.keyword` DESC "
                     + "LIMIT 1";
 
             String expectedResponse = "{"
@@ -205,7 +205,7 @@ public class TransformerReportTest {
                     + "    \"bool\" : {"
                     + "      \"must\" : ["
                     + "        {"
-                    + "          \"term\" : {"
+                    + "          \"match\" : {"
                     + "            \"CustomerID.keyword\" : {"
                     + "              \"value\" : \"enovise\","
                     + "              \"boost\" : 1.0"

@@ -11,6 +11,8 @@ package com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.EsBinaryExpression;
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 
 public abstract class EsComparisonOperator extends EsBinaryExpression {
 

@@ -7,6 +7,7 @@ package com.threatseal.elasticsearch.jdbc.driver.transformer;
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.proto.SqlTypedParamValue;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -77,7 +78,7 @@ public class Transformer {
             System.out.println(visitorAdapter.getStack());
 
             while (!visitorAdapter.getStack().empty()) {
-                String term = visitorAdapter.getStack().pop().toString();
+                String term = visitorAdapter.getStack().pop().toString().replace("`", "");
                 //System.out.println("GROUP BY term " + term);
                 sourceBuilder.aggregation(AggregationBuilders
                         .terms(term)
@@ -111,13 +112,19 @@ public class Transformer {
 
         System.out.println("stack size " + eeva.getStack().size());
 
-        Branch object = eeva.getStack().pop();
-        System.out.println(object);
+        eeva.getStack().forEach(action -> {
+            System.out.print(action + ":" + action.getClass().getSimpleName() + ",");
+        });
 
+        if (eeva.getStack().size() > 1) {
+            throw new IllegalStateException("Stack has more than one item");
+        }
+
+        Branch object = eeva.getStack().pop();
         QueryBuilders.boolQuery();
 
-        if (object.toObject() instanceof QueryBuilder) {
-            QueryBuilder queryBuilder = (QueryBuilder) object.toObject();
+        if (object instanceof EsQueryBuilder) {
+            QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
             sourceBuilder.query(queryBuilder);
             System.out.println("query builder " + sourceBuilder.query());
         } else {
@@ -139,11 +146,11 @@ public class Transformer {
                         logger.log(Level.FINER, "order by expression ", orderBy.getExpression());
 
                         if (!orderBy.isAscDescPresent()) {
-                            sourceBuilder.sort(orderBy.getExpression().toString());
+                            sourceBuilder.sort(orderBy.getExpression().toString().replace("`", ""));
                         } else if (orderBy.isAsc()) {
-                            sourceBuilder.sort(orderBy.getExpression().toString(), SortOrder.ASC);
+                            sourceBuilder.sort(orderBy.getExpression().toString().replace("`", ""), SortOrder.ASC);
                         } else {
-                            sourceBuilder.sort(orderBy.getExpression().toString(), SortOrder.DESC);
+                            sourceBuilder.sort(orderBy.getExpression().toString().replace("`", ""), SortOrder.DESC);
                         }
 
                     }
@@ -160,8 +167,8 @@ public class Transformer {
 
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
         //System.out.println("Transformer.sqlQueryToElasticSearchQuery sql " + sql + " params " + params);
-        
-        sql=sql.replace("\n", " ");
+
+        sql = sql.replace("\n", " ");
         Select stmt = (Select) CCJSqlParserUtil.parse(sql);
         PlainSelect selectStatement = (PlainSelect) stmt.getSelectBody();
 

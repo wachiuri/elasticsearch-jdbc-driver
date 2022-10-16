@@ -9,6 +9,8 @@ import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.expression.BranchImpl;
 import com.threatseal.elasticsearch.jdbc.driver.expression.EsBinaryExpression;
 import com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational.EsComparisonOperator;
+import java.util.ArrayList;
+import java.util.List;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -17,50 +19,29 @@ import org.elasticsearch.index.query.QueryBuilders;
  *
  * @author Timothy Wachiuri
  */
-public class EsBoolQueryBuilder extends EsBinaryExpression {
+public class EsBoolQueryBuilder extends EsBinaryExpression implements EsCompoundQueryBuilder {
 
-    private String operator;
+    List<EsQueryBuilder> mustExpressions = new ArrayList<>();
 
-    public EsBoolQueryBuilder(String operator) {
-        this.operator = operator;
+    public List<EsQueryBuilder> getMustExpressions() {
+        return mustExpressions;
     }
 
-    public String getOperator() {
-        return operator;
+    public void setMustExpressions(List<EsQueryBuilder> mustExpressions) {
+        this.mustExpressions = mustExpressions;
     }
-
-    public void setOperator(String operator) {
-        this.operator = operator;
+    
+    public List<QueryBuilder> toQueryBuilders(){
+        return List.of();
     }
 
     @Override
-    public Object toObject() {
+    public BoolQueryBuilder toQueryBuilder() {
 
-        System.out.println("EsBoolQueryBuilder.toObject() left Expression "
-                + this.getLeftExpression()
-                + " string expression " + this.getOperator()
-                + " right expression " + this.getRightExpression());
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        switch (getOperator()) {
-            case "AND":
-                boolQueryBuilder.must().add((QueryBuilder) getLeftExpression().toObject());
-                boolQueryBuilder.must().add((QueryBuilder) getRightExpression().toObject());
-                break;
-            case "OR":
-                boolQueryBuilder.should().add((QueryBuilder) getLeftExpression().toObject());
-                boolQueryBuilder.should().add((QueryBuilder) getRightExpression().toObject());
-                break;
-            case "NOT":
-                boolQueryBuilder.mustNot((QueryBuilder) getLeftExpression().toObject());
+        for (EsQueryBuilder mustExpression : mustExpressions) {
 
-                if (getRightExpression() != null) {
-                    boolQueryBuilder.mustNot((QueryBuilder) getRightExpression().toObject());
-                }
-                break;
-
-            default:
-                throw new UnsupportedOperationException("EsBoolQueryBuilder.toObject operator " + getOperator() + " NOT executed");
         }
 
         return boolQueryBuilder;
@@ -68,7 +49,7 @@ public class EsBoolQueryBuilder extends EsBinaryExpression {
 
     @Override
     public String getStringExpression() {
-        return operator;
+        return "";
     }
 
 }

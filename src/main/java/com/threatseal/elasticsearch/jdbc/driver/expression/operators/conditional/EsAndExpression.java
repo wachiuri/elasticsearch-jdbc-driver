@@ -10,12 +10,15 @@
 package com.threatseal.elasticsearch.jdbc.driver.expression.operators.conditional;
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
-import com.threatseal.elasticsearch.jdbc.driver.expression.EsBinaryExpression;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsCompoundQueryBuilder;
+import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
+import java.util.List;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 
-public class EsAndExpression extends EsConditionalOperator {
+public class EsAndExpression extends EsConditionalOperator implements EsCompoundQueryBuilder {
+
     private boolean useOperator = false;
 
     public EsAndExpression() {
@@ -54,4 +57,67 @@ public class EsAndExpression extends EsConditionalOperator {
     public EsAndExpression withRightExpression(Branch arg0) {
         return (EsAndExpression) super.withRightExpression(arg0);
     }
+
+    @Override
+    public Object toObject() {
+        return null;
+    }
+
+    @Override
+    public BoolQueryBuilder toQueryBuilder() {
+        BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
+
+        if (!(getRightExpression() instanceof EsQueryBuilder)) {
+            throw new IllegalStateException("Right expression "
+                    + getRightExpression().getClass().getName()
+                    + " is not a query builder");
+        }
+
+        if (getLeftExpression() instanceof EsQueryBuilder == false) {
+            throw new IllegalStateException("Left expression "
+                    + getLeftExpression().getClass().getName()
+                    + " is not a query builder");
+        }
+
+        if (getRightExpression() instanceof EsCompoundQueryBuilder) {
+            EsCompoundQueryBuilder compoundQueryBuilder = (EsCompoundQueryBuilder) getRightExpression();
+            for (QueryBuilder queryBuilder1 : compoundQueryBuilder.toQueryBuilders()) {
+                queryBuilder.must(queryBuilder1);
+            }
+        } else {
+            queryBuilder.must(((EsQueryBuilder) this.getRightExpression()).toQueryBuilder());
+        }
+
+        if (getLeftExpression() instanceof EsCompoundQueryBuilder) {
+            EsCompoundQueryBuilder compoundQueryBuilder = (EsCompoundQueryBuilder) getLeftExpression();
+            for (QueryBuilder queryBuilder1 : compoundQueryBuilder.toQueryBuilders()) {
+                queryBuilder.must(queryBuilder1);
+            }
+        } else {
+            queryBuilder.must(((EsQueryBuilder) this.getLeftExpression()).toQueryBuilder());
+        }
+
+        return queryBuilder;
+    }
+
+    @Override
+    public List<QueryBuilder> toQueryBuilders() {
+        if (!(getRightExpression() instanceof EsQueryBuilder)) {
+            throw new IllegalStateException("Right expression "
+                    + getRightExpression().getClass().getName()
+                    + " is not a query builder");
+        }
+
+        if (getLeftExpression() instanceof EsQueryBuilder == false) {
+            throw new IllegalStateException("Left expression "
+                    + getLeftExpression().getClass().getName()
+                    + " is not a query builder");
+        }
+
+        return List.of(
+                ((EsQueryBuilder) this.getRightExpression()).toQueryBuilder(),
+                ((EsQueryBuilder) this.getLeftExpression()).toQueryBuilder()
+        );
+    }
+
 }

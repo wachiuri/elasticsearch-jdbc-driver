@@ -30,9 +30,7 @@ public class BranchImpl implements Branch {
 
     @Override
     public String toString() {
-        return "BranchImpl";
+        return this.getClass().getSimpleName();
     }
-    
-    
 
 }

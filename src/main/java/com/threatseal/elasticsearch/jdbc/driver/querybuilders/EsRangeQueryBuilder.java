@@ -83,4 +83,11 @@ public class EsRangeQueryBuilder extends BranchImpl {
                 .from(betweenExpressionStart, true)
                 .to(betweenExpressionEnd, true);
     }
+
+    @Override
+    public String toString() {
+        return leftExpression + " " + (not ? "NOT " : "") + "BETWEEN " + betweenExpressionStart + " AND "
+                + betweenExpressionEnd;
+    }
+
 }
