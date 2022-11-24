@@ -68,7 +68,6 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 class JdbcHttpClient {
 
     private static final Logger logger = Logger.getLogger(JdbcHttpClient.class.getName());
-
     private RestHighLevelClient restHighLevelClient;
     private RestClient restClient;
     private final JdbcConnection jdbcConn;

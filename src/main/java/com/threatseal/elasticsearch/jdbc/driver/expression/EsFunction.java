@@ -40,7 +40,6 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
     public String getName() {
         return nameparts == null ? null : String.join(".", nameparts);
     }
-
     public List<String> getMultipartName() {
         return nameparts;
     }
@@ -48,12 +47,10 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
     public void setName(String string) {
         nameparts = Arrays.asList(string);
     }
-
     public EsFunction withName(String name) {
         this.setName(name);
         return this;
     }
-
     public void setName(List<String> string) {
         nameparts = string;
     }

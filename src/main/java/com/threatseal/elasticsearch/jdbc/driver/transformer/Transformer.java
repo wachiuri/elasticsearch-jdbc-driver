@@ -131,7 +131,6 @@ public class Transformer {
 
         if (object instanceof EsQueryBuilder) {
             QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
-
             sourceBuilder.query(queryBuilder);
             System.out.println("query builder " + sourceBuilder.query());
         } else {
@@ -225,7 +224,6 @@ public class Transformer {
             sql = sql.replace("\"", "\\\"");
 //            System.out.println("new sql " + sql);
         }
-
         csvList.add(0, "\"" + new String(sql.getBytes(), StandardCharsets.UTF_8) + "\"");
 
         for (int i = csvList.size(); i <= 46; i++) {

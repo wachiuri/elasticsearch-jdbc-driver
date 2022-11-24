@@ -16,6 +16,10 @@ import java.util.List;
 import static java.util.stream.Collectors.joining;
 import net.sf.jsqlparser.expression.AnalyticType;
 import net.sf.jsqlparser.statement.select.OrderByElement;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
+import net.sf.jsqlparser.statement.select.OrderByElement;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.WindowElement;
 //import net.sf.jsqlparser.expression.W;
 
