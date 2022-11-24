@@ -1,0 +1,47 @@
+POST linux-events_index_2022.11.06.15/_close
+PUT linux-events_index_2022.11.06.15/_settings
+{
+  "analysis": {
+    "analyzer": {
+      "ipaddress_analyzer": {
+        "tokenizer": "ipaddress_tokenizer"
+      }
+    },
+    "tokenizer": {
+      "ipaddress_tokenizer": {
+        "type": "pattern",
+        "pattern": "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)",
+        "group":0
+      }
+    }
+  }
+}
+
+POST linux-events_index_2022.11.06.15/_open
+
+GET linux-events_index_2022.11.06.15/_analyze
+{
+  "text": "Failed password for root from 196.75.67.91 port 34143 ssh2",
+  "analyzer": "ipaddress_analyzer"
+}
+
+PUT linux-events_index_2022.11.06.15/linux-events_doc/_mapping
+{
+  "properties": {
+    "Message":{
+      "type": "text"
+      , "fields": {
+        "ipaddress":{
+          "type": "text",
+          "analyzer": "ipaddress_analyzer",
+          "fielddata": true
+          
+        }
+      }
+      
+    }
+  }
+}
+
+
+

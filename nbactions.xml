@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-compile</actionName>
+            <displayName>compile</displayName>
+            <goals>
+                <goal>compile</goal>
+            </goals>
+        </action>
+        <action>
+            <actionName>CUSTOM-compiler:compile</actionName>
+            <displayName>compiler:compile</displayName>
+            <goals>
+                <goal>compiler:compile</goal>
+            </goals>
+        </action>
+    </actions>

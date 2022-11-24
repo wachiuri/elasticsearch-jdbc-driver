@@ -1,0 +1,229 @@
+/*-
+ * #%L
+ * JSQLParser library
+ * %%
+ * Copyright (C) 2004 - 2019 JSQLParser
+ * %%
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
+ * #L%
+ */
+package com.threatseal.elasticsearch.jdbc.driver.schema;
+
+import com.threatseal.elasticsearch.jdbc.driver.expression.BranchImpl;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.MySQLIndexHint;
+import net.sf.jsqlparser.expression.SQLServerHints;
+import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
+import net.sf.jsqlparser.schema.Database;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.FromItemVisitor;
+import net.sf.jsqlparser.statement.select.IntoTableVisitor;
+import net.sf.jsqlparser.statement.select.Pivot;
+import net.sf.jsqlparser.statement.select.UnPivot;
+
+/**
+ * A table. It can have an alias and the schema name it belongs to.
+ */
+public class EsTable extends BranchImpl {
+
+    // private Database database;
+    // private String schemaName;
+    // private String name;
+    private static final int NAME_IDX = 0;
+
+    private static final int SCHEMA_IDX = 1;
+
+    private static final int DATABASE_IDX = 2;
+
+    private static final int SERVER_IDX = 3;
+
+    private List<String> partItems = new ArrayList<>();
+
+    private Alias alias;
+
+    private Pivot pivot;
+
+    private UnPivot unpivot;
+
+    private MySQLIndexHint mysqlHints;
+
+    private SQLServerHints sqlServerHints;
+
+    public EsTable() {
+    }
+
+    public EsTable(String name) {
+        setName(name);
+    }
+
+    public EsTable(String schemaName, String name) {
+        setName(name);
+        setSchemaName(schemaName);
+    }
+
+    public EsTable(Database database, String schemaName, String name) {
+        setName(name);
+        setSchemaName(schemaName);
+        setDatabase(database);
+    }
+
+    public EsTable(List<String> partItems) {
+        this.partItems = new ArrayList<>(partItems);
+        Collections.reverse(this.partItems);
+    }
+
+    public Database getDatabase() {
+        return new Database(getIndex(DATABASE_IDX));
+    }
+
+    public EsTable withDatabase(Database database) {
+        setDatabase(database);
+        return this;
+    }
+
+    public void setDatabase(Database database) {
+        setIndex(DATABASE_IDX, database.getDatabaseName());
+        if (database.getServer() != null) {
+            setIndex(SERVER_IDX, database.getServer().getFullyQualifiedName());
+        }
+    }
+
+    public String getSchemaName() {
+        return getIndex(SCHEMA_IDX);
+    }
+
+    public EsTable withSchemaName(String schemaName) {
+        setSchemaName(schemaName);
+        return this;
+    }
+
+    public void setSchemaName(String schemaName) {
+        setIndex(SCHEMA_IDX, schemaName);
+    }
+
+    public String getName() {
+        return getIndex(NAME_IDX);
+    }
+
+    public EsTable withName(String name) {
+        this.setName(name);
+        return this;
+    }
+
+    public void setName(String name) {
+        setIndex(NAME_IDX, name);
+    }
+
+    public Alias getAlias() {
+        return alias;
+    }
+
+    public void setAlias(Alias alias) {
+        this.alias = alias;
+    }
+
+    private void setIndex(int idx, String value) {
+        int size = partItems.size();
+        for (int i = 0; i < idx - size + 1; i++) {
+            partItems.add(null);
+        }
+
+        if (value == null && idx == partItems.size() - 1) {
+            partItems.remove(idx);
+        } else {
+            partItems.set(idx, value);
+        }
+    }
+
+    private String getIndex(int idx) {
+        if (idx < partItems.size()) {
+            return partItems.get(idx);
+        } else {
+            return null;
+        }
+    }
+
+    public String getFullyQualifiedName() {
+        StringBuilder fqn = new StringBuilder();
+
+        for (int i = partItems.size() - 1; i >= 0; i--) {
+            String part = partItems.get(i);
+            if (part == null) {
+                part = "";
+            }
+            fqn.append(part);
+            if (i != 0) {
+                fqn.append(".");
+            }
+        }
+
+        return fqn.toString();
+    }
+
+    public Pivot getPivot() {
+        return pivot;
+    }
+
+    public void setPivot(Pivot pivot) {
+        this.pivot = pivot;
+    }
+
+    public UnPivot getUnPivot() {
+        return this.unpivot;
+    }
+
+    public void setUnPivot(UnPivot unpivot) {
+        this.unpivot = unpivot;
+    }
+
+    public MySQLIndexHint getIndexHint() {
+        return mysqlHints;
+    }
+
+    public EsTable withHint(MySQLIndexHint hint) {
+        setHint(hint);
+        return this;
+    }
+
+    public void setHint(MySQLIndexHint hint) {
+        this.mysqlHints = hint;
+    }
+
+    public SQLServerHints getSqlServerHints() {
+        return sqlServerHints;
+    }
+
+    public void setSqlServerHints(SQLServerHints sqlServerHints) {
+        this.sqlServerHints = sqlServerHints;
+    }
+
+    @Override
+    public String toString() {
+        return getFullyQualifiedName() + ((alias != null) ? alias.toString() : "")
+                + ((pivot != null) ? " " + pivot : "") + ((unpivot != null) ? " " + unpivot : "")
+                + ((mysqlHints != null) ? mysqlHints.toString() : "")
+                + ((sqlServerHints != null) ? sqlServerHints.toString() : "");
+    }
+
+    /*
+    public Table withUnPivot(UnPivot unpivot) {
+        return (Table) FromItem.super.withUnPivot(unpivot);
+    }
+
+    public Table withAlias(Alias alias) {
+        return (Table) FromItem.super.withAlias(alias);
+    }
+
+    public Table withPivot(Pivot pivot) {
+        return (Table) FromItem.super.withPivot(pivot);
+    }
+    */
+
+    public EsTable withSqlServerHints(SQLServerHints sqlServerHints) {
+        this.setSqlServerHints(sqlServerHints);
+        return this;
+    }
+}

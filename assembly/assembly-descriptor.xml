@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 http://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    <dependencySets>
+        <dependencySet>
+            <excludes>
+                <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
+                <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-cbor</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:jackson-dataformats-binary</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-smile</exclude>
+                <exclude>com.fasterxml.jackson.dataformat:jackson-dataformat-yaml</exclude>
+                <exclude>net.sf.jasperreports:jasperreports</exclude>
+                <exclude>net.sf.jasperreports:jasperserver</exclude>
+                <exclude>org.slf4j:slf4j-api</exclude>
+                <exclude>org.apache.logging.log4j:log4j-api</exclude>
+                <exclude>org.apache.logging.log4j:log4j-core</exclude>
+            </excludes>
+            <includes>
+                <include>org.elasticsearch.client:elasticsearch-rest-high-level-client:5.6.16</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+</assembly>
