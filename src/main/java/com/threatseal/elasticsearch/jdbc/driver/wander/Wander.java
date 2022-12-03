@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,35 +72,47 @@ public class Wander {
     public TransportClient getTransportClient() throws UnknownHostException {
         return new PreBuiltTransportClient(Settings.builder()
                 .put("cluster.name", "elasticsearch")
-                .build(), List.of())
+                .build(), new ArrayList<>())
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"),
                         9300
                 ));
     }
 
     public void map() throws UnknownHostException, JsonProcessingException {
-        
-        Entry fieldData = Map.entry("fielddata", true);
-        Entry textType = Map.entry("type", "text");
 
-        Entry keyWordType = Map.entry("type", "keyword");
-        Entry ignoreAbove = Map.entry("ignore_above", 256);
+        Map<String, Object> keyword = new HashMap();
 
-        Map keyword = Map.ofEntries(keyWordType, ignoreAbove);
+        keyword.put("type", "keyword");
+        keyword.put("ignore_above", 256);
 
-        Map ipAddress = Map.of("type", "ip", "ignore_malformed", true, "script", new Script(
+        Map<String, Object> ipAddress = new HashMap();
+        ipAddress.put("type", "ip");
+        ipAddress.put("ignore_malformed", true);
+        ipAddress.put("script", new Script(
                 ScriptType.INLINE,
                 "groovy",
                 "def matcher = doc['Message'].value =~ /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;"
                 + "emit(matcher.find()?matcher.group():null);",
-                Map.of()
-        ), "on_script_error", "ignore");
+                new HashMap<>()
+        ));
+        ipAddress.put("on_script_error", "ignore");
 
-        Map fields = Map.of("keyword", keyword, "ipaddress", ipAddress);
+        Map<String, Object> fields = new HashMap();
 
-        Map message = Map.of("Message", Map.ofEntries(fieldData, textType, Map.entry("fields", fields)));
+        fields.put("keyword", keyword);
+        fields.put("ipaddress", ipAddress);
 
-        Map properties = Map.of("properties", message);
+        Map<String, Object> message = new HashMap();
+        Map<String, Object> messageMap = new HashMap<>();
+
+        messageMap.put("fielddata", true);
+        messageMap.put("type", "text");
+
+        message.put("Message", messageMap);
+        message.put("fields", fields);
+
+        Map<String, Object> properties = new HashMap();
+        properties.put("Properties", message);
 
         PutMappingRequestBuilder messagePutMappingRequestBuilder = new PutMappingRequestBuilder(getTransportClient(), PutMappingAction.INSTANCE);
 
@@ -111,7 +125,6 @@ public class Wander {
 
         System.out.println("messagePutMappingRequestBuilder " + messagePutMappingRequestBuilder);
 
-        
         messagePutMappingRequestBuilder.execute(new ActionListener<PutMappingResponse>() {
             @Override
             public void onResponse(PutMappingResponse response) {
@@ -175,7 +188,7 @@ public class Wander {
                         + "String newString=originalMessage.substring(length);" //                        + "return newString;"
                         + "int indexOfSpace=newString.indexOf(' ');" //                        + "return indexOfSpace;" 
                         + "return newString.substring(0,indexOfSpace);",
-                        Map.of()
+                        new HashMap<>()
                 )))
                 .query(boolQueryBuilder) //                .size(0)
                 ;

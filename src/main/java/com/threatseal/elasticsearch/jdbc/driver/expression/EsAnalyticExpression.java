@@ -230,7 +230,7 @@ public class EsAnalyticExpression extends BranchImpl {
         }
         if (funcOrderBy != null) {
             b.append(" ORDER BY ");
-            b.append(funcOrderBy.stream().map(OrderByElement::toString).collect(joining(", ")));
+            b.append(funcOrderBy.stream().map(EsOrderByElement::toString).collect(joining(", ")));
         }
 
         b.append(") ");

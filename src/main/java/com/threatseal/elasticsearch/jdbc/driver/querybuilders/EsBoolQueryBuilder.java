@@ -32,7 +32,7 @@ public class EsBoolQueryBuilder extends EsBinaryExpression implements EsCompound
     }
     
     public List<QueryBuilder> toQueryBuilders(){
-        return List.of();
+        return new ArrayList<>();
     }
 
     @Override

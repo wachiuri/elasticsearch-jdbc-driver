@@ -5,6 +5,7 @@
  */
 package com.threatseal.elasticsearch.jdbc.driver.transformer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -112,11 +113,12 @@ public class TransformerReportTest {
                     + "  }"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
             assertEquals(expectedResponse, searchSourceBuilder.toString());
+
         } catch (JSQLParserException ex) {
             Logger.getLogger(TransformerReportTest.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -182,7 +184,7 @@ public class TransformerReportTest {
                     + "  }"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             assertEquals(expected, searchSourceBuilder.toString());
         } catch (JSQLParserException ex) {
@@ -255,7 +257,7 @@ public class TransformerReportTest {
                     + "  }"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -279,7 +281,7 @@ public class TransformerReportTest {
                     + "    }\n"
                     + "  }\n"
                     + "}";
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -358,7 +360,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -443,7 +445,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -472,7 +474,7 @@ public class TransformerReportTest {
                     + "AND `CustomerID.keyword`='enovise'\n"
                     + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
                     + ") "
-                    + "GROUP BY ip_src_addr ,REGEXP_SUBSTR(message,'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')";
+                    + "GROUP BY `ip_src_addr.keyword` ,Message.ipaddress";
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
@@ -521,7 +523,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -537,20 +539,19 @@ public class TransformerReportTest {
             String sql = "SELECT *\n"
                     + "FROM sometable\n"
                     + "WHERE "
-                    + "("
+                    //                    + "("
                     + "`source:type`='windows-events'\n"
                     + "AND EventID=4720\n"
                     + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ")\n"
-                    + "OR\n"
-                    + "(\n"
-                    + "`source:type`='linux-events'\n"
-                    + "AND Message like 'new user%'\n"
-                    + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ") "
-                    + "GROUP BY ip_src_addr ,REGEXP_SUBSTR(message,'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')";
+                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-11-27 23:59:59'\n" //                    + ")\n"
+                    //                    + "OR\n"
+                    //                    + "(\n"
+                    //                    + "`source:type`='linux-events'\n"
+                    //                    + "AND Message like 'new user%'\n"
+                    //                    + "AND `CustomerID.keyword`='enovise'\n"
+                    //                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
+                    //                    + ") "
+                    ;
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
@@ -599,7 +600,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -615,20 +616,19 @@ public class TransformerReportTest {
             String sql = "SELECT *\n"
                     + "FROM sometable\n"
                     + "WHERE "
-                    + "("
+                    //                    + "("
                     + "`source:type`='windows-events'\n"
                     + "AND EventID=4726\n"
                     + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ")\n"
-                    + "OR\n"
-                    + "(\n"
-                    + "`source:type`='linux-events'\n"
-                    + "AND Message like 'delete user%'\n"
-                    + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ") "
-                    + "GROUP BY ip_src_addr,REGEXP_SUBSTR(message,'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')";
+                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n" //                    + ")\n"
+                    //                    + "OR\n"
+                    //                    + "(\n"
+                    //                    + "`source:type`='linux-events'\n"
+                    //                    + "AND Message like 'delete user%'\n"
+                    //                    + "AND `CustomerID.keyword`='enovise'\n"
+                    //                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
+                    //                    + ") "
+                    ;
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
@@ -677,7 +677,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -693,21 +693,20 @@ public class TransformerReportTest {
             String sql = "SELECT *\n"
                     + "FROM sometable\n"
                     + "WHERE "
-                    + "("
+                    //                    + "("
                     + "`source:type`='windows-events'\n"
                     + "AND EventID=4720\n"
                     + "AND PrimaryGroupId!=513\n"
                     + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ")\n"
-                    + "OR\n"
-                    + "(\n"
-                    + "`source:type`='linux-events'\n"
-                    + "AND Message like 'delete user%'\n"
-                    + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ") "
-                    + "GROUP BY ip_src_addr ,REGEXP_SUBSTR(message,'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')";
+                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-11-27 23:59:59'\n" //                    + ")\n"
+                    //                    + "OR\n"
+                    //                    + "(\n"
+                    //                    + "`source:type`='linux-events'\n"
+                    //                    + "AND Message like 'delete user%'\n"
+                    //                    + "AND `CustomerID.keyword`='enovise'\n"
+                    //                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
+                    //                    + ") "
+                    ;
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
@@ -756,7 +755,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
@@ -772,21 +771,19 @@ public class TransformerReportTest {
             String sql = "SELECT *\n"
                     + "FROM sometable\n"
                     + "WHERE "
-                    + "("
+                    //                    + "("
                     + "`source:type`='windows-events'\n"
                     + "AND EventID=4724\n"
-                    + "AND PrimaryGroupId!=513\n"
                     + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ")\n"
-                    + "OR\n"
-                    + "(\n"
-                    + "`source:type`='linux-events'\n"
-                    + "AND Message like 'Password changed%'\n"
-                    + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ") "
-                    + "GROUP BY ip_src_addr, REGEXP_SUBSTR(message,'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')";
+                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n" //                    + ")\n"
+                    //                    + "OR\n"
+                    //                    + "(\n"
+                    //                    + "`source:type`='linux-events'\n"
+                    //                    + "AND Message like 'Password changed%'\n"
+                    //                    + "AND `CustomerID.keyword`='enovise'\n"
+                    //                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
+                    //                    + ") "
+                    ;
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
@@ -835,7 +832,7 @@ public class TransformerReportTest {
                     + "  }\n"
                     + "}";
 
-            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, List.of());
+            SearchSourceBuilder searchSourceBuilder = Transformer.transform(sql, new ArrayList<>());
 
             System.out.print("response ");
             System.out.println(searchSourceBuilder.toString());
