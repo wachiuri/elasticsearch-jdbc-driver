@@ -25,6 +25,7 @@ public class TransformerTest {
     private List<SqlTypedParamValue> param0;
     private List<SqlTypedParamValue> param010;
     private List<SqlTypedParamValue> param01;
+    private List<SqlTypedParamValue> param1010;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -58,6 +59,9 @@ public class TransformerTest {
 
         param0.add(new SqlTypedParamValue(
                 "Integer", 0));
+
+        param1010.add(new SqlTypedParamValue("Integer", 10));
+        param1010.add(new SqlTypedParamValue("Integer", 10));
     }
 
     @After
@@ -2101,7 +2105,9 @@ public class TransformerTest {
 
     @Test
     public void testProblemIssue485Date() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM tab WHERE tab.date = :date", List.of(new SqlTypedParamValue("String", "2022-09-26"))) instanceof SearchSourceBuilder);
+        List<SqlTypedParamValue> params = new ArrayList<>();
+        params.add(new SqlTypedParamValue("String", "2022-09-26"));
+        assertTrue(Transformer.transform("SELECT * FROM tab WHERE tab.date = :date", params) instanceof SearchSourceBuilder);
     }
 
     @Test
@@ -2836,7 +2842,13 @@ public class TransformerTest {
 
     @Test
     public void testCheckColonVariable() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE (col1, col2) IN ((:qp0, :qp1), (:qp2, :qp3))", List.of(new SqlTypedParamValue("Integer", 10), new SqlTypedParamValue("Integer", 20), new SqlTypedParamValue("Integer", 30), new SqlTypedParamValue("Integer", 40))) instanceof SearchSourceBuilder);
+        List<SqlTypedParamValue> params = new ArrayList<>();
+        params.add(new SqlTypedParamValue("Integer", 10));
+        params.add(new SqlTypedParamValue("Integer", 20));
+        params.add(new SqlTypedParamValue("Integer", 30));
+        params.add(new SqlTypedParamValue("Integer", 40));
+
+        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE (col1, col2) IN ((:qp0, :qp1), (:qp2, :qp3))", params) instanceof SearchSourceBuilder);
     }
 
     @Test
@@ -2952,7 +2964,10 @@ public class TransformerTest {
 
     @Test
     public void testCreateTableWithParameterDefaultFalseIssue1088() throws Exception {
-        assertTrue(Transformer.transform("SELECT p.*, rhp.house_id FROM rel_house_person rhp INNER JOIN person p ON rhp.person_id = p.if WHERE rhp.house_id IN (SELECT house_id FROM rel_house_person WHERE person_id = :personId AND current_occupant = :current) AND rhp.current_occupant = :currentOccupant", List.of(new SqlTypedParamValue("Integer", 10), new SqlTypedParamValue("Integer", 10), new SqlTypedParamValue("Integer", 10))) instanceof SearchSourceBuilder);
+        List<SqlTypedParamValue> params = new ArrayList<>();
+        params.add(new SqlTypedParamValue("Integer", 10));
+        params.add(new SqlTypedParamValue("Integer", 10));
+        assertTrue(Transformer.transform("SELECT p.*, rhp.house_id FROM rel_house_person rhp INNER JOIN person p ON rhp.person_id = p.if WHERE rhp.house_id IN (SELECT house_id FROM rel_house_person WHERE person_id = :personId AND current_occupant = :current) AND rhp.current_occupant = :currentOccupant", params) instanceof SearchSourceBuilder);
     }
 
     @Test

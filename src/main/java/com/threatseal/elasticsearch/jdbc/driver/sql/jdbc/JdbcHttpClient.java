@@ -75,7 +75,12 @@ class JdbcHttpClient {
                         .setSocketTimeout(30000)
         )
                 .build();
-        restHighLevelClient = new RestHighLevelClient(restClient);
+        try {
+            restHighLevelClient = new RestHighLevelClient(restClient);
+        } catch (Exception e) {
+            System.out.print("exception initializing RestHighLevelClient ");
+            System.out.println(e);
+        }
         if (checkServer) {
             this.serverInfo = fetchServerInfo();
             checkServerVersion();
@@ -126,12 +131,12 @@ class JdbcHttpClient {
             System.out.println("search request " + searchRequest);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
 
-            //System.out.println("search response " + searchResponse);
+            System.out.println("search response " + searchResponse);
             List<Object> searchList = new ArrayList<>();
 
             List<JdbcColumnInfo> searchFields = Collections.EMPTY_LIST;
             if (searchResponse.getHits().totalHits > 0) {
-
+                
                 Map<String, SearchHitField> fields = searchResponse.getHits().getAt(0).getFields();
                 for (String fieldName : fields.keySet()) {
                     SearchHitField searchHitField = fields.get(fieldName);
@@ -154,7 +159,7 @@ class JdbcHttpClient {
             System.out.println("no of returned hits " + searchResponse.getHits().getHits().length);
             List<List<Object>> rows = Arrays.asList(searchList);
 
-            //System.out.println("rows " + rows);
+            System.out.println("rows " + rows);
             return new DefaultCursor(this, "", searchFields, rows, meta, Collections.EMPTY_LIST);
 
         } catch (IOException ex) {
