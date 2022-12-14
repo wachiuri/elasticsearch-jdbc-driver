@@ -78,7 +78,7 @@ class JdbcHttpClient {
         try {
             restHighLevelClient = new RestHighLevelClient(restClient);
         } catch (Exception e) {
-            System.out.print("exception initializing RestHighLevelClient ");
+            System.out.print("Exception initializing RestHighLevelClient ");
             System.out.println(e);
         }
         if (checkServer) {
@@ -135,8 +135,11 @@ class JdbcHttpClient {
             List<Object> searchList = new ArrayList<>();
 
             List<JdbcColumnInfo> searchFields = Collections.EMPTY_LIST;
-            if (searchResponse.getHits().totalHits > 0) {
-                
+
+            System.out.println("total hits " + searchResponse.getHits().totalHits);
+            System.out.println("hits length " + searchResponse.getHits().getHits().length);
+            if (searchResponse.getHits().getHits().length > 0) {
+
                 Map<String, SearchHitField> fields = searchResponse.getHits().getAt(0).getFields();
                 for (String fieldName : fields.keySet()) {
                     SearchHitField searchHitField = fields.get(fieldName);
@@ -151,12 +154,15 @@ class JdbcHttpClient {
                 }
             }
 
+            System.out.println("length of aggregations" + searchResponse.getAggregations().asList().size());
+            if (!searchResponse.getAggregations().asList().isEmpty()) {
+                System.out.println("test hostswap agent again");
+            }
+
             System.out.println("fields " + searchFields);
 
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.FINER, "fields", searchFields);
             Collections.addAll(searchList, searchResponse.getHits().getHits());
-            System.out.println("total hits " + searchResponse.getHits().totalHits);
-            System.out.println("no of returned hits " + searchResponse.getHits().getHits().length);
             List<List<Object>> rows = Arrays.asList(searchList);
 
             System.out.println("rows " + rows);
