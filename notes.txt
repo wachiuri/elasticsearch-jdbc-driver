@@ -1,3 +1,3 @@
-java options for tomcat when running on dcevm 11 set in <tomcat-path>/bin/Tomcaat9w.exe
+java options for tomcat when running on dcevm 11 set in <tomcat-path>/bin/Tomcat9w.exe java options
 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:8000
 -XX:HotswapAgent=fatjar

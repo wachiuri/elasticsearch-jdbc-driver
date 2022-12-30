@@ -6,6 +6,9 @@
  */
 package com.threatseal.elasticsearch.jdbc.driver.sql.jdbc;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.threatseal.elasticsearch.jdbc.driver.sql.client.ClientException;
 import com.threatseal.elasticsearch.jdbc.driver.sql.client.ClientVersion;
 import com.threatseal.elasticsearch.jdbc.driver.proto.ColumnInfo;
@@ -21,9 +24,13 @@ import java.util.List;
 import static com.threatseal.elasticsearch.jdbc.driver.sql.client.StringUtils.EMPTY;
 import com.threatseal.elasticsearch.jdbc.driver.transformer.Transformer;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.sf.jsqlparser.JSQLParserException;
@@ -32,7 +39,12 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
+import org.elasticsearch.search.aggregations.bucket.histogram.Histogram.Bucket;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 /**
@@ -132,41 +144,105 @@ class JdbcHttpClient {
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
 
             System.out.println("search response " + searchResponse);
-            List<Object> searchList = new ArrayList<>();
+            List<List<Object>> rows = new ArrayList<>();
 
-            List<JdbcColumnInfo> searchFields = Collections.EMPTY_LIST;
+            List<JdbcColumnInfo> searchFields = new ArrayList<>();
 
             System.out.println("total hits " + searchResponse.getHits().totalHits);
             System.out.println("hits length " + searchResponse.getHits().getHits().length);
-            if (searchResponse.getHits().getHits().length > 0) {
+            if (searchResponse.getAggregations() != null) {
+                System.out.println("length of aggregations " + searchResponse.getAggregations().asList().size());
+            }
 
-                Map<String, SearchHitField> fields = searchResponse.getHits().getAt(0).getFields();
-                for (String fieldName : fields.keySet()) {
-                    SearchHitField searchHitField = fields.get(fieldName);
+            if (searchResponse.getAggregations() != null && !searchResponse.getAggregations().asList().isEmpty()) {
+                Aggregation firstAggregation = searchResponse.getAggregations().iterator().next();
+                System.out.println("aggregation type " + firstAggregation.getType());
+
+                searchFields.add(new JdbcColumnInfo(
+                        "key",
+                        EsType.TEXT,
+                        "table",
+                        "catalog",
+                        "schema",
+                        "Key",
+                        255));
+                searchFields.add(new JdbcColumnInfo(
+                        "docCount",
+                        EsType.TEXT,
+                        "table",
+                        "catalog",
+                        "schema",
+                        "docCount",
+                        255));
+                searchFields.add(new JdbcColumnInfo(
+                        "keyAsString",
+                        EsType.TEXT,
+                        "table",
+                        "catalog",
+                        "schema",
+                        "keyAsString",
+                        255));
+
+                NumberFormat nf = NumberFormat.getInstance(new Locale("en", "US"));
+                if (firstAggregation.getType().equals("sterms")) {
+
+                    Terms terms = (Terms) firstAggregation;
+
+                    for (Terms.Bucket bucket : terms.getBuckets()) {
+                        List<Object> row = new ArrayList<>();
+                        row.add(bucket.getKey().toString());
+                        row.add(bucket.getDocCount() + "");
+
+                        row.add(bucket.getKeyAsString());
+                        rows.add(row);
+                    }
+
+                } else if (firstAggregation.getType().equals("date_histogram")) {
+                    Histogram histogram = (Histogram) firstAggregation;
+
+                    for (Histogram.Bucket bucket : histogram.getBuckets()) {
+                        List<Object> row = new ArrayList<>();
+                        row.add(bucket.getKey().toString());
+                        row.add(bucket.getDocCount() + "");
+
+                        row.add(bucket.getKeyAsString());
+                        rows.add(row);
+                    }
+                }
+
+            } else if (searchResponse.getHits().getHits().length > 0) {
+
+                Set<String> fieldSet = new HashSet<>();
+
+                for (SearchHit hit : searchResponse.getHits().getHits()) {
+                    List<Object> row = new ArrayList<>();
+                    fieldSet.addAll(hit.getSource().keySet());
+
+                    row.addAll(hit.getSource().values());
+
+                    rows.add(row);
+                }
+
+                for (String field : fieldSet) {
                     searchFields.add(new JdbcColumnInfo(
-                            fieldName,
+                            field,
                             EsType.TEXT,
                             "table",
                             "catalog",
                             "schema",
-                            searchHitField.getName(),
-                            255));
+                            field,
+                            255)
+                    );
                 }
-            }
 
-            System.out.println("length of aggregations" + searchResponse.getAggregations().asList().size());
-            if (!searchResponse.getAggregations().asList().isEmpty()) {
-                System.out.println("test hostswap agent again");
             }
 
             System.out.println("fields " + searchFields);
 
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.FINER, "fields", searchFields);
-            Collections.addAll(searchList, searchResponse.getHits().getHits());
-            List<List<Object>> rows = Arrays.asList(searchList);
 
             System.out.println("rows " + rows);
-            return new DefaultCursor(this, "", searchFields, rows, meta, Collections.EMPTY_LIST);
+            return new DefaultCursor(this, "cursor", searchFields, rows, meta, Collections.EMPTY_LIST);
 
         } catch (IOException ex) {
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.SEVERE, null, ex);
@@ -183,6 +259,7 @@ class JdbcHttpClient {
      */
     Tuple<String, List<List<Object>>> nextPage(String cursor, RequestMeta meta) throws SQLException {
         try {
+            System.out.println("JdbcHttpClient.nextPage");
             /*SqlQueryRequest sqlRequest = new SqlQueryRequest(
             cursor,
             TimeValue.timeValueMillis(meta.queryTimeoutInMs()),
@@ -195,8 +272,10 @@ class JdbcHttpClient {
             SearchResponse response = restHighLevelClient.search(new SearchRequest()); //.response();
             return new Tuple<>("", Collections.EMPTY_LIST);
             //return new Tuple<>(response.cursor(), response.rows());
+
         } catch (IOException ex) {
-            Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(JdbcHttpClient.class
+                    .getName()).log(Level.SEVERE, null, ex);
             throw new SQLException("IOException ", ex);
         }
     }
@@ -206,8 +285,10 @@ class JdbcHttpClient {
             restClient.close();
             return true;
             //return restHighLevelClient.queryClose(cursor, Mode.JDBC);
+
         } catch (IOException ex) {
-            Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(JdbcHttpClient.class
+                    .getName()).log(Level.SEVERE, null, ex);
             throw new SQLException("IOException ", ex);
         }
     }

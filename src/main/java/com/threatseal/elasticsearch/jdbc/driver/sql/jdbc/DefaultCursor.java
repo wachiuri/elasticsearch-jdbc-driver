@@ -23,12 +23,12 @@ class DefaultCursor implements Cursor {
     private String cursor;
 
     DefaultCursor(
-        JdbcHttpClient client,
-        String cursor,
-        List<JdbcColumnInfo> columnInfos,
-        List<List<Object>> rows,
-        RequestMeta meta,
-        List<String> warnings
+            JdbcHttpClient client,
+            String cursor,
+            List<JdbcColumnInfo> columnInfos,
+            List<List<Object>> rows,
+            RequestMeta meta,
+            List<String> warnings
     ) {
         this.client = client;
         this.meta = meta;
@@ -45,6 +45,7 @@ class DefaultCursor implements Cursor {
 
     @Override
     public boolean next() throws SQLException {
+        System.out.println("DefaultCursor.next");
         if (row < rows.size() - 1) {
             row++;
             return true;
@@ -62,6 +63,8 @@ class DefaultCursor implements Cursor {
 
     @Override
     public Object column(int column) {
+        //System.out.println("column " + column);
+        //System.out.println(rows.get(row).get(column));
         return rows.get(row).get(column);
     }
 

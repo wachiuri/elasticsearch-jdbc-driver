@@ -35,6 +35,8 @@ import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.AggregatorFactories;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
@@ -76,6 +78,7 @@ public class Transformer {
                             .dateHistogramInterval(DateHistogramInterval.HOUR)
                             .interval(1)
                             .format("yyyy-MM-dd HH")
+                            .order(Histogram.Order.COUNT_DESC)
                     );
                 } else {
                     EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY);
@@ -87,6 +90,7 @@ public class Transformer {
                             .terms(termString)
                             .field(termString)
                             .size(sourceBuilder.size() >= 0 ? sourceBuilder.size() : 10)
+                            .order(Terms.Order.count(false))
                     );
                 }
             }
