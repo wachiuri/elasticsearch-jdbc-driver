@@ -131,10 +131,6 @@ class JdbcHttpClient {
 
             System.out.println("query " + sql + " params " + params + " meta " + meta);
 
-            params.forEach((param) -> {
-                System.out.println("param " + param);
-            });
-
             SearchSourceBuilder sourceBuilder = Transformer.transform(sql, params);
 
             SearchRequest searchRequest = new SearchRequest();
@@ -155,8 +151,6 @@ class JdbcHttpClient {
             }
 
             if (searchResponse.getAggregations() != null && !searchResponse.getAggregations().asList().isEmpty()) {
-                Aggregation firstAggregation = searchResponse.getAggregations().iterator().next();
-                System.out.println("aggregation type " + firstAggregation.getType());
 
                 searchFields.add(new JdbcColumnInfo(
                         "key",
@@ -184,29 +178,34 @@ class JdbcHttpClient {
                         255));
 
                 NumberFormat nf = NumberFormat.getInstance(new Locale("en", "US"));
-                if (firstAggregation.getType().equals("sterms")) {
+                for (Aggregation aggregation : searchResponse.getAggregations()) {
+                    System.out.println("aggregation type " + aggregation.getType());
+                    if (aggregation.getType().equals("sterms")) {
 
-                    Terms terms = (Terms) firstAggregation;
+                        Terms terms = (Terms) aggregation;
 
-                    for (Terms.Bucket bucket : terms.getBuckets()) {
-                        List<Object> row = new ArrayList<>();
-                        row.add(bucket.getKey().toString());
-                        row.add(bucket.getDocCount() + "");
+                        for (Terms.Bucket bucket : terms.getBuckets()) {
+                            List<Object> row = new ArrayList<>();
+                            row.add(bucket.getKey().toString());
+                            row.add(bucket.getDocCount() + "");
 
-                        row.add(bucket.getKeyAsString());
-                        rows.add(row);
-                    }
+                            row.add(bucket.getKeyAsString());
+                            rows.add(row);
+                        }
 
-                } else if (firstAggregation.getType().equals("date_histogram")) {
-                    Histogram histogram = (Histogram) firstAggregation;
+                    } else if (aggregation.getType().equals("date_histogram")) {
+                        Histogram histogram = (Histogram) aggregation;
 
-                    for (Histogram.Bucket bucket : histogram.getBuckets()) {
-                        List<Object> row = new ArrayList<>();
-                        row.add(bucket.getKey().toString());
-                        row.add(bucket.getDocCount() + "");
+                        for (Histogram.Bucket bucket : histogram.getBuckets()) {
+                            List<Object> row = new ArrayList<>();
+                            row.add(bucket.getKey().toString());
+                            row.add(bucket.getDocCount() + "");
 
-                        row.add(bucket.getKeyAsString());
-                        rows.add(row);
+                            row.add(bucket.getKeyAsString());
+                            rows.add(row);
+                        }
+                    } else {
+                        System.err.println("aggregation type not evaluated " + aggregation.getType());
                     }
                 }
 
@@ -259,7 +258,7 @@ class JdbcHttpClient {
      */
     Tuple<String, List<List<Object>>> nextPage(String cursor, RequestMeta meta) throws SQLException {
         try {
-            System.out.println("JdbcHttpClient.nextPage");
+            //System.out.println("JdbcHttpClient.nextPage");
             /*SqlQueryRequest sqlRequest = new SqlQueryRequest(
             cursor,
             TimeValue.timeValueMillis(meta.queryTimeoutInMs()),

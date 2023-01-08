@@ -45,7 +45,7 @@ class DefaultCursor implements Cursor {
 
     @Override
     public boolean next() throws SQLException {
-        System.out.println("DefaultCursor.next");
+        //System.out.println("DefaultCursor.next");
         if (row < rows.size() - 1) {
             row++;
             return true;

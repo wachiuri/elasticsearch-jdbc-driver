@@ -12,9 +12,6 @@ package com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.expression.EsBinaryExpression;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 
@@ -90,6 +87,17 @@ public class EsLikeExpression extends EsBinaryExpression implements EsQueryBuild
 
     @Override
     public QueryBuilder toQueryBuilder() {
+
+        int indexOfPercentage = getRightExpression().toString().indexOf("%");
+
+        System.out.println("index of percentage " + indexOfPercentage);
+        System.out.println("length of right expression " + getRightExpression().toString().length());
+
+        if (indexOfPercentage == getRightExpression().toString().length() - 1 && isNot()) {
+            return QueryBuilders.boolQuery().mustNot(QueryBuilders.matchPhrasePrefixQuery(getLeftExpression().toString(), getRightExpression().toString().replace("%", "")));
+        } else if (indexOfPercentage == getRightExpression().toString().length() - 1) {
+            return QueryBuilders.matchPhrasePrefixQuery(getLeftExpression().toString(), getRightExpression().toString().replace("%", ""));
+        }
 
         if (isNot()) {
             return QueryBuilders.boolQuery().mustNot(QueryBuilders.matchQuery(getLeftExpression().toString(), getRightExpression().toString().replace("%", "")));

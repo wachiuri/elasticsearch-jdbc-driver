@@ -13,7 +13,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -85,7 +87,7 @@ public class Transformer {
                     term.accept(eeva);
                     System.out.println("group by stack " + eeva.getStack());
                     System.out.println("toObject " + eeva.getStack().peek().toObject());
-                    
+
                     sourceBuilder.aggregation(AggregationBuilders
                             .terms(termString)
                             .field(termString)
@@ -176,9 +178,36 @@ public class Transformer {
     }
 
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
-        //System.out.println("Transformer.sqlQueryToElasticSearchQuery sql " + sql + " params " + params);
+        System.out.println("Transformer.sqlQueryToElasticSearchQuery sql " + sql + " params " + params);
 
+        String paramString;
+        for (SqlTypedParamValue param : params) {
+            paramString = "";
+            int parameterIndex = sql.indexOf("?");
+            if (parameterIndex == -1) {
+                break;
+            }
+
+            System.out.println("param type " + param.type);
+            System.out.println("param value " + param.value);
+            System.out.println("param toString() " + param.toString());
+            if (param.type.equals("STRING") || param.type.equals("KEYWORD")) {
+                paramString = (String) param.value;
+            } else if (param.type.equals("DATETIME")) {
+                Date date = (Date) param.value;
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                paramString = sdf.format(date);
+
+            } else {
+                System.err.println("param type not evaluated " + param.type);
+            }
+
+            sql = sql.substring(0, parameterIndex).concat("'").concat(paramString)
+                    .concat("'").concat(sql.substring(parameterIndex + 1, sql.length()));
+        }
         sql = sql.replace("\n", " ");
+
+        System.out.println("parsing " + sql);
         Statement stmt = CCJSqlParserUtil.parse(sql);
 
         EsStatementVisitorAdapter statementVisitorAdapter = new EsStatementVisitorAdapter();
