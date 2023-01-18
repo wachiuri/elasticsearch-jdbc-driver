@@ -133,10 +133,10 @@ public class Transformer {
         }
 
         Branch object = eeva.getStack().pop();
-        QueryBuilders.boolQuery();
-
+        
         if (object instanceof EsQueryBuilder) {
             QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
+            
             sourceBuilder.query(queryBuilder);
             System.out.println("query builder " + sourceBuilder.query());
         } else {
@@ -246,9 +246,12 @@ public class Transformer {
             groupBy(groupByElement);
         }
 
-        if (sourceBuilder.aggregations() != null && sourceBuilder.aggregations().getAggregatorFactories().size() > 0) {
+        if (sourceBuilder.aggregations() != null && !sourceBuilder.aggregations().getAggregatorFactories().isEmpty()) {
             sourceBuilder.size(0);
         }
+
+        sourceBuilder.docValueField("Message.username")
+                .docValueField("Message.ipaddress");
 
         System.out.println("source builder " + sourceBuilder);
 

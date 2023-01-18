@@ -73,7 +73,7 @@ class JdbcHttpClient {
     JdbcHttpClient(JdbcConnection jdbcConn, boolean checkServer) throws SQLException {
         this.jdbcConn = jdbcConn;
         conCfg = jdbcConn.config();
-        logger.log(Level.FINE, "jdbc conCfg", conCfg);
+        System.out.println("jdbc conCfg" + conCfg);
         connect();
     }
 

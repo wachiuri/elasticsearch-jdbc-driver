@@ -618,15 +618,14 @@ public class TransformerReportTest {
                     + "("
                     + "`source:type`='windows-events'\n"
                     + "AND EventID=4726\n"
-                    + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n" //                    + ")\n"
+                    + ")\n"
                     + "OR\n"
                     + "(\n"
                     + "`source:type`='linux-events'\n"
                     + "AND Message like 'delete user%'\n"
+                    + ") "
                     + "AND `CustomerID.keyword`='enovise'\n"
-                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n"
-                    + ") ";
+                    + "AND timestamp between '2022-09-01 00:00:00' and '2022-10-17 23:59:59'\n";
 
             String expectedEsQuery = "{\n"
                     + "  \"query\": {\n"
