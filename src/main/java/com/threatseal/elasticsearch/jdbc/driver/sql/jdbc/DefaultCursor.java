@@ -63,9 +63,15 @@ class DefaultCursor implements Cursor {
 
     @Override
     public Object column(int column) {
-        //System.out.println("column " + column);
-        //System.out.println(rows.get(row).get(column));
-        return rows.get(row).get(column);
+        System.out.println("column " + column);
+        System.out.println(rows.get(row).get(column));
+        Object object = rows.get(row).get(column);
+
+        if (object == null) {
+            return "";
+        }
+
+        return object;
     }
 
     @Override

@@ -30,9 +30,14 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.StatementVisitorAdapter;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.GroupByVisitor;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.script.Script;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.AggregatorFactories;
@@ -133,10 +138,10 @@ public class Transformer {
         }
 
         Branch object = eeva.getStack().pop();
-        
+
         if (object instanceof EsQueryBuilder) {
             QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
-            
+
             sourceBuilder.query(queryBuilder);
             System.out.println("query builder " + sourceBuilder.query());
         } else {
@@ -195,11 +200,19 @@ public class Transformer {
                 paramString = (String) param.value;
             } else if (param.type.equals("DATETIME")) {
                 Date date = (Date) param.value;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                 paramString = sdf.format(date);
 
+            } else if (param.type.equals("DATE")) {
+                Date date = (Date) param.value;
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                paramString = sdf.format(date);
+                if (paramString != null) {
+                    paramString = paramString.replace("00:00:00", "");
+                }
             } else {
                 System.err.println("param type not evaluated " + param.type);
+                paramString = (String) param.value;
             }
 
             sql = sql.substring(0, parameterIndex).concat("'").concat(paramString)
@@ -250,7 +263,38 @@ public class Transformer {
             sourceBuilder.size(0);
         }
 
-        sourceBuilder.docValueField("Message.username")
+        for (SelectItem selectItem : selectStatement.getSelectItems()) {
+            if (selectItem instanceof SelectExpressionItem) {
+                SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
+                System.out.print("select expression item expression "
+                        + selectExpressionItem.getExpression().toString()
+                );
+
+                if (selectExpressionItem.getAlias() != null) {
+                    System.out.print(" alias " + selectExpressionItem.getAlias().getName());
+                }
+            } else if (selectItem instanceof AllColumns) {
+                AllColumns allColumns = (AllColumns) selectItem;
+                System.out.println("all columns " + allColumns.toString());
+            } else if (selectItem instanceof AllTableColumns) {
+                AllTableColumns allTableColumns = (AllTableColumns) selectItem;
+                System.out.println("all table columns " + allTableColumns.toString());
+            }
+        }
+
+        sourceBuilder.fetchSource(true);
+
+        sourceBuilder.scriptField("username",
+                new Script("doc['Message.username'].value!=null?doc['Message.username'].value"
+                        + ":doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\"\""),
+                true);
+        sourceBuilder.scriptField("ipaddress",
+                new Script("doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value"
+                        + ":doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\"\""),
+                true);
+
+        sourceBuilder
+                .docValueField("Message.username")
                 .docValueField("Message.ipaddress");
 
         System.out.println("source builder " + sourceBuilder);

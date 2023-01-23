@@ -84,7 +84,7 @@ class JdbcResultSet implements ResultSet, JdbcWrapper {
         if (wasLast || rowNumber < 1) {
             throw new SQLException("No row available");
         }
-        Object object = null;
+        Object object = "";
         try {
             object = cursor.column(columnIndex - 1);
         } catch (Exception iae) {

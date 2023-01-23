@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.sf.jsqlparser.JSQLParserException;
@@ -214,12 +215,35 @@ class JdbcHttpClient {
                 Set<String> fieldSet = new HashSet<>();
 
                 for (SearchHit hit : searchResponse.getHits().getHits()) {
-                    List<Object> row = new ArrayList<>();
-                    fieldSet.addAll(hit.getSource().keySet());
 
-                    row.addAll(hit.getSource().values());
+                    fieldSet.addAll(hit.getSource().keySet());
+                    fieldSet.addAll(hit.getFields().keySet());
+                }
+
+                for (SearchHit hit : searchResponse.getHits().getHits()) {
+
+                    List<Object> row = new ArrayList<>();
+
+                    for (String fieldName : fieldSet) {
+                        if (hit.getSource().keySet().contains(fieldName)) {
+                            if (hit.getSource().get(fieldName) == null) {
+                                row.add("");
+                            } else {
+                                row.add(hit.getSource().get(fieldName));
+                            }
+                        } else if (hit.getFields() != null && hit.getFields().containsKey(fieldName)) {
+                            String value = "";
+                            for (Object object : hit.getField(fieldName).getValues()) {
+                                value += (String) object + ",";
+                            }
+                            row.add(value);
+                        } else {
+                            row.add("");
+                        }
+                    }
 
                     rows.add(row);
+
                 }
 
                 for (String field : fieldSet) {
@@ -233,7 +257,6 @@ class JdbcHttpClient {
                             255)
                     );
                 }
-
             }
 
             System.out.println("fields " + searchFields);

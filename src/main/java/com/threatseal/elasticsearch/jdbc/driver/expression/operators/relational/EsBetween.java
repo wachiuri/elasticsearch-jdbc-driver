@@ -119,7 +119,7 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
                 .lte(getBetweenExpressionEnd().toObject());
 
         if (getLeftExpression().toString().equals("timestamp")) {
-            rangeQueryBuilder.format("yyyy-MM-dd HH:mm:ss");
+            rangeQueryBuilder.format("yyyy-MM-dd");
         }
         if (isNot()) {
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery()
