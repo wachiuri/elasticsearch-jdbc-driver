@@ -10,9 +10,12 @@ import com.threatseal.elasticsearch.jdbc.driver.proto.core.Tuple;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class DefaultCursor implements Cursor {
 
+    private final Logger logger = Logger.getLogger(DefaultCursor.class.getName());
     private final JdbcHttpClient client;
     private final RequestMeta meta;
 
@@ -45,7 +48,7 @@ class DefaultCursor implements Cursor {
 
     @Override
     public boolean next() throws SQLException {
-        //System.out.println("DefaultCursor.next");
+        //logger.log(Level.INFO,"DefaultCursor.next");
         if (row < rows.size() - 1) {
             row++;
             return true;
@@ -63,8 +66,8 @@ class DefaultCursor implements Cursor {
 
     @Override
     public Object column(int column) {
-        System.out.println("column " + column);
-        System.out.println(rows.get(row).get(column));
+//        logger.log(Level.INFO, "column " + column);
+//        logger.log(Level.INFO, rows.get(row).get(column).toString());
         Object object = rows.get(row).get(column);
 
         if (object == null) {

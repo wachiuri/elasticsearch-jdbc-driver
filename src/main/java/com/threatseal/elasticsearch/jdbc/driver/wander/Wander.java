@@ -44,13 +44,15 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
  * @author Timothy Wachiuri
  */
 public class Wander {
+    
+    private static final Logger logger = Logger.getLogger(Wander.class.getName());
 
     public static void main(String[] args) {
         try {
             new Wander().map();
-            System.out.println("done");
+            logger.log(Level.INFO,"done");
         } catch (UnknownHostException ex) {
-            System.err.println("exception " + ex);
+            logger.log(Level.SEVERE,"exception " + ex);
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
         } catch (JsonProcessingException ex) {
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
@@ -116,25 +118,25 @@ public class Wander {
 
         PutMappingRequestBuilder messagePutMappingRequestBuilder = new PutMappingRequestBuilder(getTransportClient(), PutMappingAction.INSTANCE);
 
-        System.out.println("mapping " + new ObjectMapper().writeValueAsString(properties));
+        logger.log(Level.INFO,"mapping " + new ObjectMapper().writeValueAsString(properties));
         messagePutMappingRequestBuilder.setSource(properties);
 
         messagePutMappingRequestBuilder.setIndices("testindex")
                 .setType("testtype")
                 .setUpdateAllTypes(false);
 
-        System.out.println("messagePutMappingRequestBuilder " + messagePutMappingRequestBuilder);
+        logger.log(Level.INFO,"messagePutMappingRequestBuilder " + messagePutMappingRequestBuilder);
 
         messagePutMappingRequestBuilder.execute(new ActionListener<PutMappingResponse>() {
             @Override
             public void onResponse(PutMappingResponse response) {
-                System.out.println("message PUT mapping response " + response);
+                logger.log(Level.INFO,"message PUT mapping response " + response);
             }
 
             @Override
             public void onFailure(Exception e) {
-                System.out.println("message PUT mapping failure " + e.getMessage());
-                e.printStackTrace(System.out);
+                logger.log(Level.SEVERE,"message PUT mapping failure " + e.getMessage());
+                //e.printStackTrace(System.out);
             }
         });
     }
@@ -142,22 +144,22 @@ public class Wander {
     private void testSplitString() {
 
         String message = "Failed password for invalid user xmq from 45.175.18.29 port 48580 ssh2";
-        System.out.println(message);
+        logger.log(Level.INFO,message);
         String substring = message.substring(33);
-        System.out.println(substring);
+        logger.log(Level.INFO,substring);
         int indexOfSpace = substring.indexOf(' ');
-        System.out.println("indexOfSpace " + indexOfSpace);
+        logger.log(Level.INFO,"indexOfSpace " + indexOfSpace);
         String username = substring.substring(0, indexOfSpace);
-        System.out.println(username);
+        logger.log(Level.INFO,username);
 
         String message1 = "Failed password for root from 45.175.18.29 port 48580 ssh2";
-        System.out.println(message1);
+        logger.log(Level.INFO,message1);
         String substring1 = message1.substring(20);
-        System.out.println(substring1);
+        logger.log(Level.INFO,substring1);
         int indexOfSpace1 = substring1.indexOf(' ');
-        System.out.println("indexOfSpace " + indexOfSpace1);
+        logger.log(Level.INFO,"indexOfSpace " + indexOfSpace1);
         String username1 = substring1.substring(0, indexOfSpace1);
-        System.out.println(username1);
+        logger.log(Level.INFO,username1);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
@@ -200,14 +202,14 @@ public class Wander {
                 "doc['Message']+\" concat\"",
                 Map.of()), true);
          */
-        System.out.println("source " + searchSourceBuilder);
+        logger.log(Level.INFO,"source " + searchSourceBuilder);
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.indices("linux-events_index_2022.10.01.00");
         searchRequest.source(searchSourceBuilder);
         try {
             SearchResponse searchResponse = getClient().search(searchRequest);
-            System.out.println("searchResponse " + searchResponse);
+            logger.log(Level.INFO,"searchResponse " + searchResponse);
         } catch (IOException ex) {
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
         }

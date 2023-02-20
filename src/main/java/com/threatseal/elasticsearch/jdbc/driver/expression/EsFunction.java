@@ -18,12 +18,16 @@ import java.util.List;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A function as MAX,COUNT...
  */
 public class EsFunction extends BranchImpl implements EsAggregationBuilder {
 
+    private final Logger logger = Logger.getLogger(EsFunction.class.getName());
+    
     private List<String> nameparts;
     private EsExpressionList parameters;
     private EsNamedExpressionList namedParameters;
@@ -40,6 +44,7 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
     public String getName() {
         return nameparts == null ? null : String.join(".", nameparts);
     }
+
     public List<String> getMultipartName() {
         return nameparts;
     }
@@ -47,10 +52,12 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
     public void setName(String string) {
         nameparts = Arrays.asList(string);
     }
+
     public EsFunction withName(String name) {
         this.setName(name);
         return this;
     }
+
     public void setName(List<String> string) {
         nameparts = string;
     }
@@ -285,19 +292,19 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
 
     @Override
     public Object toObject() {
-        
+
         return toString();
     }
 
     @Override
     public AggregationBuilder toAggregationBuilder() {
-        System.out.println("function name " + getName());
+        logger.log(Level.INFO, "function name " + getName());
         switch (getName()) {
             case "substring":
-                
+
                 break;
             case "substring_index":
-                
+
                 break;
         }
 

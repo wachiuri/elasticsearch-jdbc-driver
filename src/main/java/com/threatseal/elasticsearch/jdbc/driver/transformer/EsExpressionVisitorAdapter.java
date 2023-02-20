@@ -198,11 +198,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author Timothy Wachiuri
  */
 public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
+
+    private final Logger logger = Logger.getLogger(EsExpressionVisitorAdapter.class.getName());
 
     private final SQLStatementSection sQLStatementSection;
 
@@ -231,13 +236,13 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
             message += classs.getSimpleName() + ",";
         }
 
-        System.out.println("message " + message);
-        System.out.print("stack [");
+        logger.log(Level.INFO, "message " + message);
+        logger.log(Level.INFO, "stack [");
         stack.forEach(action -> {
-            System.out.print(action + ":" + action.getClass().getSimpleName() + ",");
+            logger.log(Level.INFO, action + ":" + action.getClass().getSimpleName() + ",");
         });
-        System.out.println("]");
-        System.out.println("stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
+        logger.log(Level.INFO, "]");
+        logger.log(Level.INFO, "stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
         //this.stack.push(method.getParameters()[0]);
         this.list.add("\"" + method.getParameters()[0].getType().getName() + "\"");
     }
@@ -263,7 +268,7 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
                 .withIgnoreNulls(function.isIgnoreNulls())
                 .withName(function.getName())
                 .withUnique(function.isUnique());
-        
+
         this.stack.push(parent);
         if (function.getParameters() != null) {
             function.getParameters().accept(this);
@@ -1455,11 +1460,11 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        System.out.print("BinaryExpression LEFT ");
-        System.out.print(expr.getLeftExpression());
-        System.out.print(" " + expr.getStringExpression() + " ");
-        System.out.print(" RIGHT ");
-        System.out.println(expr.getRightExpression());
+        logger.log(Level.INFO, "BinaryExpression LEFT ");
+        logger.log(Level.INFO, expr.getLeftExpression().toString());
+        logger.log(Level.INFO, " " + expr.getStringExpression() + " ");
+        logger.log(Level.INFO, " RIGHT ");
+        logger.log(Level.INFO, expr.getRightExpression().toString());
 
         EsBinaryExpression parent = (EsBinaryExpression) this.stack.peek();
 

@@ -11,12 +11,17 @@ package com.threatseal.elasticsearch.jdbc.driver.expression.operators.relational
 
 import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.expression.EsBinaryExpression;
+import com.threatseal.elasticsearch.jdbc.driver.expression.EsFunction;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 
 public class EsLikeExpression extends EsBinaryExpression implements EsQueryBuilder {
 
+    private final Logger logger = Logger.getLogger(EsFunction.class.getName());
+    
     private boolean not = false;
     private Branch escapeExpression = null;
     private boolean caseInsensitive = false;
@@ -90,8 +95,8 @@ public class EsLikeExpression extends EsBinaryExpression implements EsQueryBuild
 
         int indexOfPercentage = getRightExpression().toString().indexOf("%");
 
-        System.out.println("index of percentage " + indexOfPercentage);
-        System.out.println("length of right expression " + getRightExpression().toString().length());
+        logger.log(Level.INFO,"index of percentage " + indexOfPercentage);
+        logger.log(Level.INFO,"length of right expression " + getRightExpression().toString().length());
 
         if (indexOfPercentage == getRightExpression().toString().length() - 1 && isNot()) {
             return QueryBuilders.boolQuery().mustNot(QueryBuilders.matchPhrasePrefixQuery(getLeftExpression().toString(), getRightExpression().toString().replace("%", "")));

@@ -47,6 +47,7 @@ import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram.Bucket;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import java.util.logging.Level;
 
 /**
  * JDBC specific HTTP client. Since JDBC is not thread-safe, neither is this
@@ -74,12 +75,12 @@ class JdbcHttpClient {
     JdbcHttpClient(JdbcConnection jdbcConn, boolean checkServer) throws SQLException {
         this.jdbcConn = jdbcConn;
         conCfg = jdbcConn.config();
-        System.out.println("jdbc conCfg" + conCfg);
+        logger.log(Level.INFO, "jdbc conCfg" + conCfg);
         connect();
     }
 
     private void connect() throws SQLException {
-        System.out.println("JdbcHttpClient.connect ");
+        logger.log(Level.INFO, "JdbcHttpClient.connect ");
         restClient = RestClient.builder(new HttpHost("10.4.0.1",
                 9200, "http")
         ).setRequestConfigCallback(
@@ -91,8 +92,8 @@ class JdbcHttpClient {
         try {
             restHighLevelClient = new RestHighLevelClient(restClient);
         } catch (Exception e) {
-            System.out.print("Exception initializing RestHighLevelClient ");
-            System.out.println(e);
+            logger.log(Level.INFO, "Exception initializing RestHighLevelClient ");
+            logger.log(Level.SEVERE, e.getMessage());
         }
         if (checkServer) {
             this.serverInfo = fetchServerInfo();
@@ -130,25 +131,25 @@ class JdbcHttpClient {
             );
              */
 
-            System.out.println("query " + sql + " params " + params + " meta " + meta);
+            logger.log(Level.INFO, "query {0} params {1} meta {2}", new Object[]{sql, params, meta});
 
             SearchSourceBuilder sourceBuilder = Transformer.transform(sql, params);
 
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.source(sourceBuilder);
 
-            System.out.println("search request " + searchRequest);
+            logger.log(Level.INFO, "search request {0}", searchRequest);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
 
-            System.out.println("search response " + searchResponse);
+//            logger.log(Level.INFO, "search response {0}", searchResponse);
             List<List<Object>> rows = new ArrayList<>();
 
             List<JdbcColumnInfo> searchFields = new ArrayList<>();
 
-            System.out.println("total hits " + searchResponse.getHits().totalHits);
-            System.out.println("hits length " + searchResponse.getHits().getHits().length);
+            logger.log(Level.INFO, "total hits {0}", searchResponse.getHits().totalHits);
+            logger.log(Level.INFO, "hits length {0}", searchResponse.getHits().getHits().length);
             if (searchResponse.getAggregations() != null) {
-                System.out.println("length of aggregations " + searchResponse.getAggregations().asList().size());
+                logger.log(Level.INFO, "length of aggregations {0}", searchResponse.getAggregations().asList().size());
             }
 
             if (searchResponse.getAggregations() != null && !searchResponse.getAggregations().asList().isEmpty()) {
@@ -180,33 +181,33 @@ class JdbcHttpClient {
 
                 NumberFormat nf = NumberFormat.getInstance(new Locale("en", "US"));
                 for (Aggregation aggregation : searchResponse.getAggregations()) {
-                    System.out.println("aggregation type " + aggregation.getType());
-                    if (aggregation.getType().equals("sterms")) {
+                    logger.log(Level.INFO, "aggregation type {0}", aggregation.getType());
+                    switch (aggregation.getType()) {
+                        case "sterms":
+                            Terms terms = (Terms) aggregation;
+                            for (Terms.Bucket bucket : terms.getBuckets()) {
+                                List<Object> row = new ArrayList<>();
+                                row.add(bucket.getKey().toString());
+                                row.add(bucket.getDocCount() + "");
 
-                        Terms terms = (Terms) aggregation;
+                                row.add(bucket.getKeyAsString());
+                                rows.add(row);
+                            }
+                            break;
+                        case "date_histogram":
+                            Histogram histogram = (Histogram) aggregation;
+                            for (Histogram.Bucket bucket : histogram.getBuckets()) {
+                                List<Object> row = new ArrayList<>();
+                                row.add(bucket.getKey().toString());
+                                row.add(bucket.getDocCount() + "");
 
-                        for (Terms.Bucket bucket : terms.getBuckets()) {
-                            List<Object> row = new ArrayList<>();
-                            row.add(bucket.getKey().toString());
-                            row.add(bucket.getDocCount() + "");
-
-                            row.add(bucket.getKeyAsString());
-                            rows.add(row);
-                        }
-
-                    } else if (aggregation.getType().equals("date_histogram")) {
-                        Histogram histogram = (Histogram) aggregation;
-
-                        for (Histogram.Bucket bucket : histogram.getBuckets()) {
-                            List<Object> row = new ArrayList<>();
-                            row.add(bucket.getKey().toString());
-                            row.add(bucket.getDocCount() + "");
-
-                            row.add(bucket.getKeyAsString());
-                            rows.add(row);
-                        }
-                    } else {
-                        System.err.println("aggregation type not evaluated " + aggregation.getType());
+                                row.add(bucket.getKeyAsString());
+                                rows.add(row);
+                            }
+                            break;
+                        default:
+                            logger.log(Level.SEVERE, "aggregation type not evaluated {0}", aggregation.getType());
+                            break;
                     }
                 }
 
@@ -259,11 +260,10 @@ class JdbcHttpClient {
                 }
             }
 
-            System.out.println("fields " + searchFields);
-
+            logger.log(Level.INFO, "fields {0}", searchFields);
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.FINER, "fields", searchFields);
 
-            System.out.println("rows " + rows);
+//            logger.log(Level.INFO, "rows {0}", rows);
             return new DefaultCursor(this, "cursor", searchFields, rows, meta, Collections.EMPTY_LIST);
 
         } catch (IOException ex) {
@@ -281,7 +281,7 @@ class JdbcHttpClient {
      */
     Tuple<String, List<List<Object>>> nextPage(String cursor, RequestMeta meta) throws SQLException {
         try {
-            //System.out.println("JdbcHttpClient.nextPage");
+            logger.log(Level.INFO, "JdbcHttpClient.nextPage");
             /*SqlQueryRequest sqlRequest = new SqlQueryRequest(
             cursor,
             TimeValue.timeValueMillis(meta.queryTimeoutInMs()),
@@ -297,7 +297,7 @@ class JdbcHttpClient {
 
         } catch (IOException ex) {
             Logger.getLogger(JdbcHttpClient.class
-                    .getName()).log(Level.SEVERE, null, ex);
+                    .getName()).log(Level.SEVERE, "IOException", ex);
             throw new SQLException("IOException ", ex);
         }
     }

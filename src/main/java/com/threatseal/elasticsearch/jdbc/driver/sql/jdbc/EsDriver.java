@@ -17,9 +17,11 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class EsDriver implements Driver {
 
+    private final Logger logger = Logger.getLogger(EsDriver.class.getName());
     private static final EsDriver INSTANCE = new EsDriver();
 
     static {
@@ -84,7 +86,7 @@ public class EsDriver implements Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        System.out.println("accepts url " + url);
+        logger.log(Level.INFO,"accepts url " + url);
         return JdbcConfiguration.canAccept(url);
     }
 
