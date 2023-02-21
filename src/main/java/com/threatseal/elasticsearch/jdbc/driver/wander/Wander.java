@@ -52,7 +52,7 @@ public class Wander {
             new Wander().map();
             logger.log(Level.INFO,"done");
         } catch (UnknownHostException ex) {
-            logger.log(Level.SEVERE,"exception " + ex);
+            logger.log(Level.SEVERE, "exception {0}", ex);
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
         } catch (JsonProcessingException ex) {
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
@@ -118,24 +118,24 @@ public class Wander {
 
         PutMappingRequestBuilder messagePutMappingRequestBuilder = new PutMappingRequestBuilder(getTransportClient(), PutMappingAction.INSTANCE);
 
-        logger.log(Level.INFO,"mapping " + new ObjectMapper().writeValueAsString(properties));
+        logger.log(Level.INFO, "mapping {0}", new ObjectMapper().writeValueAsString(properties));
         messagePutMappingRequestBuilder.setSource(properties);
 
         messagePutMappingRequestBuilder.setIndices("testindex")
                 .setType("testtype")
                 .setUpdateAllTypes(false);
 
-        logger.log(Level.INFO,"messagePutMappingRequestBuilder " + messagePutMappingRequestBuilder);
+        logger.log(Level.INFO, "messagePutMappingRequestBuilder {0}", messagePutMappingRequestBuilder);
 
         messagePutMappingRequestBuilder.execute(new ActionListener<PutMappingResponse>() {
             @Override
             public void onResponse(PutMappingResponse response) {
-                logger.log(Level.INFO,"message PUT mapping response " + response);
+                logger.log(Level.INFO, "message PUT mapping response {0}", response);
             }
 
             @Override
             public void onFailure(Exception e) {
-                logger.log(Level.SEVERE,"message PUT mapping failure " + e.getMessage());
+                logger.log(Level.SEVERE, "message PUT mapping failure {0}", e.getMessage());
                 //e.printStackTrace(System.out);
             }
         });
@@ -148,7 +148,7 @@ public class Wander {
         String substring = message.substring(33);
         logger.log(Level.INFO,substring);
         int indexOfSpace = substring.indexOf(' ');
-        logger.log(Level.INFO,"indexOfSpace " + indexOfSpace);
+        logger.log(Level.INFO, "indexOfSpace {0}", indexOfSpace);
         String username = substring.substring(0, indexOfSpace);
         logger.log(Level.INFO,username);
 
@@ -157,7 +157,7 @@ public class Wander {
         String substring1 = message1.substring(20);
         logger.log(Level.INFO,substring1);
         int indexOfSpace1 = substring1.indexOf(' ');
-        logger.log(Level.INFO,"indexOfSpace " + indexOfSpace1);
+        logger.log(Level.INFO, "indexOfSpace {0}", indexOfSpace1);
         String username1 = substring1.substring(0, indexOfSpace1);
         logger.log(Level.INFO,username1);
 
@@ -202,14 +202,14 @@ public class Wander {
                 "doc['Message']+\" concat\"",
                 Map.of()), true);
          */
-        logger.log(Level.INFO,"source " + searchSourceBuilder);
+        logger.log(Level.INFO, "source {0}", searchSourceBuilder);
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.indices("linux-events_index_2022.10.01.00");
         searchRequest.source(searchSourceBuilder);
         try {
             SearchResponse searchResponse = getClient().search(searchRequest);
-            logger.log(Level.INFO,"searchResponse " + searchResponse);
+            logger.log(Level.INFO, "searchResponse {0}", searchResponse);
         } catch (IOException ex) {
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
         }

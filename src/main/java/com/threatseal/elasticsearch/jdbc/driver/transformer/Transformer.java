@@ -57,7 +57,7 @@ public class Transformer {
 
     private final SearchSourceBuilder sourceBuilder;
 
-    private List<String> csvList = new ArrayList<>();
+    private final List<String> csvList = new ArrayList<>();
 
     public Transformer() {
         sourceBuilder = new SearchSourceBuilder();
@@ -90,8 +90,8 @@ public class Transformer {
                 } else {
                     EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY);
                     term.accept(eeva);
-                    logger.log(Level.INFO, "group by stack " + eeva.getStack());
-                    logger.log(Level.INFO, "toObject " + eeva.getStack().peek().toObject());
+                    logger.log(Level.INFO, "group by stack {0}", eeva.getStack());
+                    logger.log(Level.INFO, "toObject {0}", eeva.getStack().peek().toObject());
 
                     sourceBuilder.aggregation(AggregationBuilders
                             .terms(termString)
@@ -103,7 +103,7 @@ public class Transformer {
             }
 
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "GROUP BY exception " + e.getMessage());
+            logger.log(Level.SEVERE, "GROUP BY exception {0}", e.getMessage());
             //e.printStackTrace(System.out);
         }
     }
@@ -119,7 +119,7 @@ public class Transformer {
         try {
             whereExpression.accept(eeva);
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "where accept exception " + e.getMessage());
+            logger.log(Level.SEVERE, "where accept exception {0}", e.getMessage());
             //e.printStackTrace(System.out);
         }
         //logger.log(Level.INFO,"query builder " + queryBuilder);
@@ -127,10 +127,10 @@ public class Transformer {
 
         csvList.addAll(eeva.getList());
 
-        logger.log(Level.INFO, "stack size " + eeva.getStack().size());
+        logger.log(Level.INFO, "stack size {0}", eeva.getStack().size());
 
         eeva.getStack().forEach(action -> {
-            logger.log(Level.INFO, action + ":" + action.getClass().getSimpleName() + ",");
+            logger.log(Level.INFO, "{0}:{1},", new Object[]{action, action.getClass().getSimpleName()});
         });
 
         if (eeva.getStack().size() > 1) {
@@ -143,7 +143,7 @@ public class Transformer {
             QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
 
             sourceBuilder.query(queryBuilder);
-            logger.log(Level.INFO, "query builder " + sourceBuilder.query());
+            logger.log(Level.INFO, "query builder {0}", sourceBuilder.query());
         } else {
             logger.log(Level.INFO, "ERROR : where result is not a query builder");
         }
@@ -176,15 +176,14 @@ public class Transformer {
             }
 
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "order by exception " + e.getMessage());
+            logger.log(Level.SEVERE, "order by exception {0}", e.getMessage());
             //e.printStackTrace(System.out);
         }
 
     }
 
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
-        logger.log(Level.INFO, "Transformer.sqlQueryToElasticSearchQuery sql " + sql + " params " + params);
-
+        
         String paramString;
         for (SqlTypedParamValue param : params) {
             paramString = "";
@@ -193,26 +192,34 @@ public class Transformer {
                 break;
             }
 
-            logger.log(Level.INFO, "param type " + param.type);
-            logger.log(Level.INFO, "param value " + param.value);
-            logger.log(Level.INFO, "param toString() " + param.toString());
-            if (param.type.equals("STRING") || param.type.equals("KEYWORD")) {
-                paramString = (String) param.value;
-            } else if (param.type.equals("DATETIME")) {
-                Date date = (Date) param.value;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                paramString = sdf.format(date);
-
-            } else if (param.type.equals("DATE")) {
-                Date date = (Date) param.value;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                paramString = sdf.format(date);
-                if (paramString != null) {
-                    paramString = paramString.replace("00:00:00", "");
-                }
-            } else {
-                logger.log(Level.SEVERE, "param type not evaluated " + param.type);
-                paramString = (String) param.value;
+            logger.log(Level.INFO, "param type {0}", param.type);
+            logger.log(Level.INFO, "param value {0}", param.value);
+            logger.log(Level.INFO, "param toString() {0}", param.toString());
+            switch (param.type) {
+                case "STRING":
+                case "KEYWORD":
+                    paramString = (String) param.value;
+                    break;
+                case "DATETIME":
+                    {
+                        Date date = (Date) param.value;
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        paramString = sdf.format(date);
+                        break;
+                    }
+                case "DATE":
+                    {
+                        Date date = (Date) param.value;
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        paramString = sdf.format(date);
+                        if (paramString != null) {
+                            paramString = paramString.replace("00:00:00", "");
+                        }       break;
+                    }
+                default:
+                    logger.log(Level.SEVERE, "param type not evaluated {0}", param.type);
+                    paramString = (String) param.value;
+                    break;
             }
 
             sql = sql.substring(0, parameterIndex).concat("'").concat(paramString)
@@ -220,7 +227,7 @@ public class Transformer {
         }
         sql = sql.replace("\n", " ");
 
-        logger.log(Level.INFO, "parsing " + sql);
+        logger.log(Level.INFO, "parsing {0}", sql);
         Statement stmt = CCJSqlParserUtil.parse(sql);
 
         EsStatementVisitorAdapter statementVisitorAdapter = new EsStatementVisitorAdapter();
@@ -266,19 +273,17 @@ public class Transformer {
         for (SelectItem selectItem : selectStatement.getSelectItems()) {
             if (selectItem instanceof SelectExpressionItem) {
                 SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
-                logger.log(Level.INFO, "select expression item expression "
-                        + selectExpressionItem.getExpression().toString()
-                );
+                logger.log(Level.INFO, "select expression item expression {0}", selectExpressionItem.getExpression().toString());
 
                 if (selectExpressionItem.getAlias() != null) {
-                    logger.log(Level.INFO, " alias " + selectExpressionItem.getAlias().getName());
+                    logger.log(Level.INFO, " alias {0}", selectExpressionItem.getAlias().getName());
                 }
             } else if (selectItem instanceof AllColumns) {
                 AllColumns allColumns = (AllColumns) selectItem;
-                logger.log(Level.INFO, "all columns " + allColumns.toString());
+                logger.log(Level.INFO, "all columns {0}", allColumns.toString());
             } else if (selectItem instanceof AllTableColumns) {
                 AllTableColumns allTableColumns = (AllTableColumns) selectItem;
-                logger.log(Level.INFO, "all table columns " + allTableColumns.toString());
+                logger.log(Level.INFO, "all table columns {0}", allTableColumns.toString());
             }
         }
 
@@ -297,7 +302,7 @@ public class Transformer {
                 .docValueField("Message.username")
                 .docValueField("Message.ipaddress");
 
-        logger.log(Level.INFO, "source builder " + sourceBuilder);
+        logger.log(Level.INFO, "source builder {0}", sourceBuilder);
 
         if (sql.contains("\"")) {
 //            logger.log(Level.INFO,"sql " + sql);

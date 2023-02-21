@@ -75,25 +75,37 @@ class JdbcHttpClient {
     JdbcHttpClient(JdbcConnection jdbcConn, boolean checkServer) throws SQLException {
         this.jdbcConn = jdbcConn;
         conCfg = jdbcConn.config();
-        logger.log(Level.INFO, "jdbc conCfg" + conCfg);
+        logger.log(Level.INFO, "jdbc conCfg {0}", conCfg);
+
+        logger.log(Level.INFO, "authPass {0} authUser {1} baseUri {2} connectTimeout {3} connectionString {4}", new Object[]{
+            conCfg.authPass(),
+            conCfg.authUser(),
+            conCfg.baseUri(),
+            conCfg.connectTimeout(),
+            conCfg.connectionString()
+        }
+        );
         connect();
     }
 
     private void connect() throws SQLException {
         logger.log(Level.INFO, "JdbcHttpClient.connect ");
-        restClient = RestClient.builder(new HttpHost("10.4.0.1",
-                9200, "http")
+        String[] configurations = conCfg.connectionString().split(":");
+
+        logger.log(Level.INFO, "configurations {0}", configurations);
+
+        restClient = RestClient.builder(new HttpHost(configurations[2].replace("//", ""),
+                Integer.parseInt(configurations[3]), "http")
         ).setRequestConfigCallback(
                 requestConfigBuilder -> requestConfigBuilder
-                        .setConnectTimeout(30000)
-                        .setSocketTimeout(30000)
+                        .setConnectTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
+                        .setSocketTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
         )
                 .build();
         try {
             restHighLevelClient = new RestHighLevelClient(restClient);
         } catch (Exception e) {
-            logger.log(Level.INFO, "Exception initializing RestHighLevelClient ");
-            logger.log(Level.SEVERE, e.getMessage());
+            logger.log(Level.SEVERE, "Exception initializing RestHighLevelClient {0}", e.getMessage());
         }
         if (checkServer) {
             this.serverInfo = fetchServerInfo();
@@ -131,7 +143,9 @@ class JdbcHttpClient {
             );
              */
 
-            logger.log(Level.INFO, "query {0} params {1} meta {2}", new Object[]{sql, params, meta});
+            logger.log(Level.INFO, "query {0}", sql);
+            logger.log(Level.INFO, "params {0} ", params);
+            logger.log(Level.INFO, "meta {0}", meta);
 
             SearchSourceBuilder sourceBuilder = Transformer.transform(sql, params);
 
