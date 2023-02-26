@@ -75,9 +75,9 @@ class JdbcHttpClient {
     JdbcHttpClient(JdbcConnection jdbcConn, boolean checkServer) throws SQLException {
         this.jdbcConn = jdbcConn;
         conCfg = jdbcConn.config();
-        logger.log(Level.INFO, "jdbc conCfg {0}", conCfg);
+        logger.log(Level.FINE, "jdbc conCfg {0}", conCfg);
 
-        logger.log(Level.INFO, "authPass {0} authUser {1} baseUri {2} connectTimeout {3} connectionString {4}", new Object[]{
+        logger.log(Level.FINE, "authPass {0} authUser {1} baseUri {2} connectTimeout {3} connectionString {4}", new Object[]{
             conCfg.authPass(),
             conCfg.authUser(),
             conCfg.baseUri(),
@@ -89,10 +89,10 @@ class JdbcHttpClient {
     }
 
     private void connect() throws SQLException {
-        logger.log(Level.INFO, "JdbcHttpClient.connect ");
+        logger.log(Level.FINE, "JdbcHttpClient.connect ");
         String[] configurations = conCfg.connectionString().split(":");
 
-        logger.log(Level.INFO, "configurations {0}", configurations);
+        logger.log(Level.FINE, "configurations {0}", configurations);
 
         restClient = RestClient.builder(new HttpHost(configurations[2].replace("//", ""),
                 Integer.parseInt(configurations[3]), "http")
@@ -143,27 +143,27 @@ class JdbcHttpClient {
             );
              */
 
-            logger.log(Level.INFO, "query {0}", sql);
-            logger.log(Level.INFO, "params {0} ", params);
-            logger.log(Level.INFO, "meta {0}", meta);
+            logger.log(Level.FINE, "query {0}", sql);
+            logger.log(Level.FINE, "params {0} ", params);
+            logger.log(Level.FINE, "meta {0}", meta);
 
             SearchSourceBuilder sourceBuilder = Transformer.transform(sql, params);
 
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.source(sourceBuilder);
 
-            logger.log(Level.INFO, "search request {0}", searchRequest);
+            logger.log(Level.FINE, "search request {0}", searchRequest);
             SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
 
-//            logger.log(Level.INFO, "search response {0}", searchResponse);
+//            logger.log(Level.FINE, "search response {0}", searchResponse);
             List<List<Object>> rows = new ArrayList<>();
 
             List<JdbcColumnInfo> searchFields = new ArrayList<>();
 
-            logger.log(Level.INFO, "total hits {0}", searchResponse.getHits().totalHits);
-            logger.log(Level.INFO, "hits length {0}", searchResponse.getHits().getHits().length);
+            logger.log(Level.FINE, "total hits {0}", searchResponse.getHits().totalHits);
+            logger.log(Level.FINE, "hits length {0}", searchResponse.getHits().getHits().length);
             if (searchResponse.getAggregations() != null) {
-                logger.log(Level.INFO, "length of aggregations {0}", searchResponse.getAggregations().asList().size());
+                logger.log(Level.FINE, "length of aggregations {0}", searchResponse.getAggregations().asList().size());
             }
 
             if (searchResponse.getAggregations() != null && !searchResponse.getAggregations().asList().isEmpty()) {
@@ -195,7 +195,7 @@ class JdbcHttpClient {
 
                 NumberFormat nf = NumberFormat.getInstance(new Locale("en", "US"));
                 for (Aggregation aggregation : searchResponse.getAggregations()) {
-                    logger.log(Level.INFO, "aggregation type {0}", aggregation.getType());
+                    logger.log(Level.FINE, "aggregation type {0}", aggregation.getType());
                     switch (aggregation.getType()) {
                         case "sterms":
                             Terms terms = (Terms) aggregation;
@@ -274,10 +274,10 @@ class JdbcHttpClient {
                 }
             }
 
-            logger.log(Level.INFO, "fields {0}", searchFields);
+            logger.log(Level.FINE, "fields {0}", searchFields);
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.FINER, "fields", searchFields);
 
-//            logger.log(Level.INFO, "rows {0}", rows);
+//            logger.log(Level.FINE, "rows {0}", rows);
             return new DefaultCursor(this, "cursor", searchFields, rows, meta, Collections.EMPTY_LIST);
 
         } catch (IOException ex) {
@@ -295,7 +295,7 @@ class JdbcHttpClient {
      */
     Tuple<String, List<List<Object>>> nextPage(String cursor, RequestMeta meta) throws SQLException {
         try {
-            logger.log(Level.INFO, "JdbcHttpClient.nextPage");
+            logger.log(Level.FINE, "JdbcHttpClient.nextPage");
             /*SqlQueryRequest sqlRequest = new SqlQueryRequest(
             cursor,
             TimeValue.timeValueMillis(meta.queryTimeoutInMs()),

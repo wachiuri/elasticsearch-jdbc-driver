@@ -73,12 +73,12 @@ public class Transformer {
     protected void groupBy(GroupByElement groupByElement) {
 
         try {
-            //logger.log(Level.INFO,"grouping sets " + groupByElement.getGroupingSets());
+            //logger.log(Level.FINE,"grouping sets " + groupByElement.getGroupingSets());
 
             for (Expression term : groupByElement.getGroupByExpressionList().getExpressions()) {
 
                 String termString = term.toString().replace("`", "");
-                //logger.log(Level.INFO,"GROUP BY term " + term);
+                //logger.log(Level.FINE,"GROUP BY term " + term);
                 if (termString.equals("timestamp")) {
                     sourceBuilder.aggregation(AggregationBuilders.dateHistogram("dateHistogram")
                             .field("timestamp")
@@ -90,8 +90,8 @@ public class Transformer {
                 } else {
                     EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY);
                     term.accept(eeva);
-                    logger.log(Level.INFO, "group by stack {0}", eeva.getStack());
-                    logger.log(Level.INFO, "toObject {0}", eeva.getStack().peek().toObject());
+                    logger.log(Level.FINE, "group by stack {0}", eeva.getStack());
+                    logger.log(Level.FINE, "toObject {0}", eeva.getStack().peek().toObject());
 
                     sourceBuilder.aggregation(AggregationBuilders
                             .terms(termString)
@@ -122,15 +122,15 @@ public class Transformer {
             logger.log(Level.SEVERE, "where accept exception {0}", e.getMessage());
             //e.printStackTrace(System.out);
         }
-        //logger.log(Level.INFO,"query builder " + queryBuilder);
-        //logger.log(Level.INFO,"stack " + eeva.getStack());
+        //logger.log(Level.FINE,"query builder " + queryBuilder);
+        //logger.log(Level.FINE,"stack " + eeva.getStack());
 
         csvList.addAll(eeva.getList());
 
-        logger.log(Level.INFO, "stack size {0}", eeva.getStack().size());
+        logger.log(Level.FINE, "stack size {0}", eeva.getStack().size());
 
         eeva.getStack().forEach(action -> {
-            logger.log(Level.INFO, "{0}:{1},", new Object[]{action, action.getClass().getSimpleName()});
+            logger.log(Level.FINE, "{0}:{1},", new Object[]{action, action.getClass().getSimpleName()});
         });
 
         if (eeva.getStack().size() > 1) {
@@ -143,9 +143,9 @@ public class Transformer {
             QueryBuilder queryBuilder = ((EsQueryBuilder) object).toQueryBuilder();
 
             sourceBuilder.query(queryBuilder);
-            logger.log(Level.INFO, "query builder {0}", sourceBuilder.query());
+            logger.log(Level.FINE, "query builder {0}", sourceBuilder.query());
         } else {
-            logger.log(Level.INFO, "ERROR : where result is not a query builder");
+            logger.log(Level.FINE, "ERROR : where result is not a query builder");
         }
     }
 
@@ -192,9 +192,9 @@ public class Transformer {
                 break;
             }
 
-            logger.log(Level.INFO, "param type {0}", param.type);
-            logger.log(Level.INFO, "param value {0}", param.value);
-            logger.log(Level.INFO, "param toString() {0}", param.toString());
+            logger.log(Level.FINE, "param type {0}", param.type);
+            logger.log(Level.FINE, "param value {0}", param.value);
+            logger.log(Level.FINE, "param toString() {0}", param.toString());
             switch (param.type) {
                 case "STRING":
                 case "KEYWORD":
@@ -227,7 +227,7 @@ public class Transformer {
         }
         sql = sql.replace("\n", " ");
 
-        logger.log(Level.INFO, "parsing {0}", sql);
+        logger.log(Level.FINE, "parsing {0}", sql);
         Statement stmt = CCJSqlParserUtil.parse(sql);
 
         EsStatementVisitorAdapter statementVisitorAdapter = new EsStatementVisitorAdapter();
@@ -240,13 +240,13 @@ public class Transformer {
 
         List<OrderByElement> orderByElements = selectStatement.getOrderByElements();
 
-        //logger.log(Level.INFO,"order by  elements " + orderByElements);
+        //logger.log(Level.FINE,"order by  elements " + orderByElements);
         if (orderByElements != null && !orderByElements.isEmpty()) {
             order(orderByElements);
         }
 
         Limit limit = selectStatement.getLimit();
-        //logger.log(Level.INFO,"limit " + limit);
+        //logger.log(Level.FINE,"limit " + limit);
         if (limit != null) {
             sourceBuilder.size(Integer.parseInt(limit.getRowCount().toString()));
 
@@ -256,12 +256,12 @@ public class Transformer {
         }
 
         Expression where = selectStatement.getWhere();
-        //logger.log(Level.INFO,"where expression " + where);
+        //logger.log(Level.FINE,"where expression " + where);
 
         where(where);
 
         GroupByElement groupByElement = selectStatement.getGroupBy();
-        //logger.log(Level.INFO,"group by element " + groupByElement);
+        //logger.log(Level.FINE,"group by element " + groupByElement);
         if (groupByElement != null) {
             groupBy(groupByElement);
         }
@@ -273,17 +273,17 @@ public class Transformer {
         for (SelectItem selectItem : selectStatement.getSelectItems()) {
             if (selectItem instanceof SelectExpressionItem) {
                 SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
-                logger.log(Level.INFO, "select expression item expression {0}", selectExpressionItem.getExpression().toString());
+                logger.log(Level.FINE, "select expression item expression {0}", selectExpressionItem.getExpression().toString());
 
                 if (selectExpressionItem.getAlias() != null) {
-                    logger.log(Level.INFO, " alias {0}", selectExpressionItem.getAlias().getName());
+                    logger.log(Level.FINE, " alias {0}", selectExpressionItem.getAlias().getName());
                 }
             } else if (selectItem instanceof AllColumns) {
                 AllColumns allColumns = (AllColumns) selectItem;
-                logger.log(Level.INFO, "all columns {0}", allColumns.toString());
+                logger.log(Level.FINE, "all columns {0}", allColumns.toString());
             } else if (selectItem instanceof AllTableColumns) {
                 AllTableColumns allTableColumns = (AllTableColumns) selectItem;
-                logger.log(Level.INFO, "all table columns {0}", allTableColumns.toString());
+                logger.log(Level.FINE, "all table columns {0}", allTableColumns.toString());
             }
         }
 
@@ -302,12 +302,12 @@ public class Transformer {
                 .docValueField("Message.username")
                 .docValueField("Message.ipaddress");
 
-        logger.log(Level.INFO, "source builder {0}", sourceBuilder);
+        logger.log(Level.FINE, "source builder {0}", sourceBuilder);
 
         if (sql.contains("\"")) {
-//            logger.log(Level.INFO,"sql " + sql);
+//            logger.log(Level.FINE,"sql " + sql);
             sql = sql.replace("\"", "\\\"");
-//            logger.log(Level.INFO,"new sql " + sql);
+//            logger.log(Level.FINE,"new sql " + sql);
         }
         csvList.add(0, "\"" + new String(sql.getBytes(), StandardCharsets.UTF_8) + "\"");
 

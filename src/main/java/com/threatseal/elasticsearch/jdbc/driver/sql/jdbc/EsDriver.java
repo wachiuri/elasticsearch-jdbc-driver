@@ -86,7 +86,7 @@ public class EsDriver implements Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        logger.log(Level.INFO,"accepts url " + url);
+        logger.log(Level.FINE,"accepts url " + url);
         return JdbcConfiguration.canAccept(url);
     }
 

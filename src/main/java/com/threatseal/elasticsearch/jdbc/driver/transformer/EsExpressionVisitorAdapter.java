@@ -236,13 +236,13 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
             message += classs.getSimpleName() + ",";
         }
 
-        logger.log(Level.INFO, "message " + message);
-        logger.log(Level.INFO, "stack [");
+        logger.log(Level.FINE, "message " + message);
+        logger.log(Level.FINE, "stack [");
         stack.forEach(action -> {
-            logger.log(Level.INFO, action + ":" + action.getClass().getSimpleName() + ",");
+            logger.log(Level.FINE, action + ":" + action.getClass().getSimpleName() + ",");
         });
-        logger.log(Level.INFO, "]");
-        logger.log(Level.INFO, "stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
+        logger.log(Level.FINE, "]");
+        logger.log(Level.FINE, "stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
         //this.stack.push(method.getParameters()[0]);
         this.list.add("\"" + method.getParameters()[0].getType().getName() + "\"");
     }
@@ -1460,11 +1460,11 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        logger.log(Level.INFO, "BinaryExpression LEFT ");
-        logger.log(Level.INFO, expr.getLeftExpression().toString());
-        logger.log(Level.INFO, " " + expr.getStringExpression() + " ");
-        logger.log(Level.INFO, " RIGHT ");
-        logger.log(Level.INFO, expr.getRightExpression().toString());
+        logger.log(Level.FINE, "BinaryExpression LEFT ");
+        logger.log(Level.FINE, expr.getLeftExpression().toString());
+        logger.log(Level.FINE, " " + expr.getStringExpression() + " ");
+        logger.log(Level.FINE, " RIGHT ");
+        logger.log(Level.FINE, expr.getRightExpression().toString());
 
         EsBinaryExpression parent = (EsBinaryExpression) this.stack.peek();
 

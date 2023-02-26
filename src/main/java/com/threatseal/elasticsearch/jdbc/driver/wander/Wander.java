@@ -50,7 +50,7 @@ public class Wander {
     public static void main(String[] args) {
         try {
             new Wander().map();
-            logger.log(Level.INFO,"done");
+            logger.log(Level.FINE,"done");
         } catch (UnknownHostException ex) {
             logger.log(Level.SEVERE, "exception {0}", ex);
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
@@ -118,19 +118,19 @@ public class Wander {
 
         PutMappingRequestBuilder messagePutMappingRequestBuilder = new PutMappingRequestBuilder(getTransportClient(), PutMappingAction.INSTANCE);
 
-        logger.log(Level.INFO, "mapping {0}", new ObjectMapper().writeValueAsString(properties));
+        logger.log(Level.FINE, "mapping {0}", new ObjectMapper().writeValueAsString(properties));
         messagePutMappingRequestBuilder.setSource(properties);
 
         messagePutMappingRequestBuilder.setIndices("testindex")
                 .setType("testtype")
                 .setUpdateAllTypes(false);
 
-        logger.log(Level.INFO, "messagePutMappingRequestBuilder {0}", messagePutMappingRequestBuilder);
+        logger.log(Level.FINE, "messagePutMappingRequestBuilder {0}", messagePutMappingRequestBuilder);
 
         messagePutMappingRequestBuilder.execute(new ActionListener<PutMappingResponse>() {
             @Override
             public void onResponse(PutMappingResponse response) {
-                logger.log(Level.INFO, "message PUT mapping response {0}", response);
+                logger.log(Level.FINE, "message PUT mapping response {0}", response);
             }
 
             @Override
@@ -144,22 +144,22 @@ public class Wander {
     private void testSplitString() {
 
         String message = "Failed password for invalid user xmq from 45.175.18.29 port 48580 ssh2";
-        logger.log(Level.INFO,message);
+        logger.log(Level.FINE,message);
         String substring = message.substring(33);
-        logger.log(Level.INFO,substring);
+        logger.log(Level.FINE,substring);
         int indexOfSpace = substring.indexOf(' ');
-        logger.log(Level.INFO, "indexOfSpace {0}", indexOfSpace);
+        logger.log(Level.FINE, "indexOfSpace {0}", indexOfSpace);
         String username = substring.substring(0, indexOfSpace);
-        logger.log(Level.INFO,username);
+        logger.log(Level.FINE,username);
 
         String message1 = "Failed password for root from 45.175.18.29 port 48580 ssh2";
-        logger.log(Level.INFO,message1);
+        logger.log(Level.FINE,message1);
         String substring1 = message1.substring(20);
-        logger.log(Level.INFO,substring1);
+        logger.log(Level.FINE,substring1);
         int indexOfSpace1 = substring1.indexOf(' ');
-        logger.log(Level.INFO, "indexOfSpace {0}", indexOfSpace1);
+        logger.log(Level.FINE, "indexOfSpace {0}", indexOfSpace1);
         String username1 = substring1.substring(0, indexOfSpace1);
-        logger.log(Level.INFO,username1);
+        logger.log(Level.FINE,username1);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
@@ -202,14 +202,14 @@ public class Wander {
                 "doc['Message']+\" concat\"",
                 Map.of()), true);
          */
-        logger.log(Level.INFO, "source {0}", searchSourceBuilder);
+        logger.log(Level.FINE, "source {0}", searchSourceBuilder);
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.indices("linux-events_index_2022.10.01.00");
         searchRequest.source(searchSourceBuilder);
         try {
             SearchResponse searchResponse = getClient().search(searchRequest);
-            logger.log(Level.INFO, "searchResponse {0}", searchResponse);
+            logger.log(Level.FINE, "searchResponse {0}", searchResponse);
         } catch (IOException ex) {
             Logger.getLogger(Wander.class.getName()).log(Level.SEVERE, null, ex);
         }

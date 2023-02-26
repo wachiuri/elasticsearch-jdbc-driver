@@ -48,7 +48,7 @@ class DefaultCursor implements Cursor {
 
     @Override
     public boolean next() throws SQLException {
-        //logger.log(Level.INFO,"DefaultCursor.next");
+        //logger.log(Level.FINE,"DefaultCursor.next");
         if (row < rows.size() - 1) {
             row++;
             return true;
@@ -66,8 +66,8 @@ class DefaultCursor implements Cursor {
 
     @Override
     public Object column(int column) {
-//        logger.log(Level.INFO, "column " + column);
-//        logger.log(Level.INFO, rows.get(row).get(column).toString());
+//        logger.log(Level.FINE, "column " + column);
+//        logger.log(Level.FINE, rows.get(row).get(column).toString());
         Object object = rows.get(row).get(column);
 
         if (object == null) {

@@ -298,7 +298,7 @@ public class EsFunction extends BranchImpl implements EsAggregationBuilder {
 
     @Override
     public AggregationBuilder toAggregationBuilder() {
-        logger.log(Level.INFO, "function name " + getName());
+        logger.log(Level.FINE, "function name " + getName());
         switch (getName()) {
             case "substring":
 

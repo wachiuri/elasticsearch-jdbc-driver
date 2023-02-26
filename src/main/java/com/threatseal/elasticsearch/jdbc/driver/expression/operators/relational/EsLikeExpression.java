@@ -95,8 +95,8 @@ public class EsLikeExpression extends EsBinaryExpression implements EsQueryBuild
 
         int indexOfPercentage = getRightExpression().toString().indexOf("%");
 
-        logger.log(Level.INFO,"index of percentage " + indexOfPercentage);
-        logger.log(Level.INFO,"length of right expression " + getRightExpression().toString().length());
+        logger.log(Level.FINE,"index of percentage " + indexOfPercentage);
+        logger.log(Level.FINE,"length of right expression " + getRightExpression().toString().length());
 
         if (indexOfPercentage == getRightExpression().toString().length() - 1 && isNot()) {
             return QueryBuilders.boolQuery().mustNot(QueryBuilders.matchPhrasePrefixQuery(getLeftExpression().toString(), getRightExpression().toString().replace("%", "")));
