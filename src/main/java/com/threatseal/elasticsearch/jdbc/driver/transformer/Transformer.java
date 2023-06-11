@@ -9,6 +9,7 @@ import com.threatseal.elasticsearch.jdbc.driver.expression.Branch;
 import com.threatseal.elasticsearch.jdbc.driver.proto.SqlTypedParamValue;
 import com.threatseal.elasticsearch.jdbc.driver.querybuilders.EsQueryBuilder;
 import com.threatseal.elasticsearch.jdbc.driver.schema.EsColumn;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
@@ -48,7 +50,6 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
 /**
- *
  * @author Timothy Wachiuri
  */
 public class Transformer {
@@ -183,7 +184,7 @@ public class Transformer {
     }
 
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
-        
+
         String paramString;
         for (SqlTypedParamValue param : params) {
             paramString = "";
@@ -195,35 +196,40 @@ public class Transformer {
             logger.log(Level.FINE, "param type {0}", param.type);
             logger.log(Level.FINE, "param value {0}", param.value);
             logger.log(Level.FINE, "param toString() {0}", param.toString());
-            switch (param.type) {
+            switch (param.type.toUpperCase()) {
                 case "STRING":
                 case "KEYWORD":
-                    paramString = (String) param.value;
+                    paramString = "'".concat("" + param.value).concat("'");
                     break;
-                case "DATETIME":
-                    {
-                        Date date = (Date) param.value;
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                        paramString = sdf.format(date);
-                        break;
+                case "DATETIME": {
+                    Date date = (Date) param.value;
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    paramString = "'".concat(sdf.format(date)).concat("'");
+                    break;
+                }
+                case "DATE": {
+                    Date date = (Date) param.value;
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    paramString = sdf.format(date);
+                    if (paramString != null) {
+                        paramString = "'".concat(paramString.replace("00:00:00", "")).concat("'");
                     }
-                case "DATE":
-                    {
-                        Date date = (Date) param.value;
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                        paramString = sdf.format(date);
-                        if (paramString != null) {
-                            paramString = paramString.replace("00:00:00", "");
-                        }       break;
-                    }
+                    break;
+                }
+                case "INTEGER":
+                case "LONG":
+                case "FLOAT":
+                case "DOUBLE":
+                    paramString = "" + param.value;
+                    break;
                 default:
                     logger.log(Level.SEVERE, "param type not evaluated {0}", param.type);
                     paramString = (String) param.value;
                     break;
             }
 
-            sql = sql.substring(0, parameterIndex).concat("'").concat(paramString)
-                    .concat("'").concat(sql.substring(parameterIndex + 1, sql.length()));
+            sql = sql.substring(0, parameterIndex).concat(paramString)
+                    .concat(sql.substring(parameterIndex + 1, sql.length()));
         }
         sql = sql.replace("\n", " ");
 
@@ -246,13 +252,20 @@ public class Transformer {
         }
 
         Limit limit = selectStatement.getLimit();
+
         //logger.log(Level.FINE,"limit " + limit);
         if (limit != null) {
-            sourceBuilder.size(Integer.parseInt(limit.getRowCount().toString()));
-
-            if (limit.getOffset() != null) {
-                sourceBuilder.from(Integer.parseInt(limit.getOffset().toString()));
+            if (limit.getRowCount().toString().equals("NULL") || limit.getRowCount().toString().equals("ALL")) {
+                limit = null;
+            } else {
+                sourceBuilder.size(Integer.parseInt(limit.getRowCount().toString()));
             }
+        }
+
+        if (selectStatement.getOffset() != null) {
+            sourceBuilder.from(Integer.parseInt(selectStatement.getOffset().getOffset().toString()));
+        } else if (limit != null && limit.getOffset() != null) {
+            sourceBuilder.from(Integer.parseInt(limit.getOffset().toString()));
         }
 
         Expression where = selectStatement.getWhere();
@@ -270,23 +283,6 @@ public class Transformer {
             sourceBuilder.size(0);
         }
 
-        for (SelectItem selectItem : selectStatement.getSelectItems()) {
-            if (selectItem instanceof SelectExpressionItem) {
-                SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
-                logger.log(Level.FINE, "select expression item expression {0}", selectExpressionItem.getExpression().toString());
-
-                if (selectExpressionItem.getAlias() != null) {
-                    logger.log(Level.FINE, " alias {0}", selectExpressionItem.getAlias().getName());
-                }
-            } else if (selectItem instanceof AllColumns) {
-                AllColumns allColumns = (AllColumns) selectItem;
-                logger.log(Level.FINE, "all columns {0}", allColumns.toString());
-            } else if (selectItem instanceof AllTableColumns) {
-                AllTableColumns allTableColumns = (AllTableColumns) selectItem;
-                logger.log(Level.FINE, "all table columns {0}", allTableColumns.toString());
-            }
-        }
-
         sourceBuilder.fetchSource(true);
 
         sourceBuilder.scriptField("username",
@@ -301,6 +297,23 @@ public class Transformer {
         sourceBuilder
                 .docValueField("Message.username")
                 .docValueField("Message.ipaddress");
+
+        List<SelectItem> selectItems = selectStatement.getSelectItems();
+
+        if (selectItems.size() > 0) {
+            selectItems.forEach(selectItem -> {
+                if (selectItem instanceof SelectExpressionItem) {
+                    SelectExpressionItem selectExpressionItem = (SelectExpressionItem) selectItem;
+                    logger.log(Level.FINE, "select expression item expression {0}", selectExpressionItem.getExpression().toString());
+
+                    EsSelectItemVisitorAdapter esSelectItemVisitorAdapter = new EsSelectItemVisitorAdapter();
+
+                    selectExpressionItem.accept(esSelectItemVisitorAdapter);
+
+                    sourceBuilder.docValueField(esSelectItemVisitorAdapter.getField());
+                }
+            });
+        }
 
         logger.log(Level.FINE, "source builder {0}", sourceBuilder);
 

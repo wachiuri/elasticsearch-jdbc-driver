@@ -1,12 +1,20 @@
 package com.threatseal.elasticsearch.jdbc.driver.transformer;
 
 import com.threatseal.elasticsearch.jdbc.driver.proto.SqlTypedParamValue;
+
 import java.io.File;
+
 import org.junit.Test;
+
 import java.util.List;
+
 import net.sf.jsqlparser.JSQLParserException;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.After;
@@ -15,17 +23,32 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+
 import static org.junit.Assert.*;
 
 //@Execution(ExecutionMode.CONCURRENT)
 public class TransformerTest {
 
-    private List<SqlTypedParamValue> param10;
-    private List<SqlTypedParamValue> param1;
-    private List<SqlTypedParamValue> param0;
-    private List<SqlTypedParamValue> param010;
-    private List<SqlTypedParamValue> param01;
-    private List<SqlTypedParamValue> param1010;
+    private static final Logger logger = Logger.getLogger(TransformerTest.class.getName());
+
+    private List<SqlTypedParamValue> param10 = List.of(new SqlTypedParamValue(
+            "INTEGER", 10));
+    private List<SqlTypedParamValue> param1 = List.of(new SqlTypedParamValue(
+            "INTEGER", 1));
+    private List<SqlTypedParamValue> param0 = List.of(new SqlTypedParamValue(
+            "INTEGER", 0));
+    private List<SqlTypedParamValue> param010 = List.of(
+            new SqlTypedParamValue("INTEGER", 0),
+            new SqlTypedParamValue("INTEGER", 10)
+    );
+    private List<SqlTypedParamValue> param01 = List.of(
+            new SqlTypedParamValue("INTEGER", 0),
+            new SqlTypedParamValue("INTEGER", 1)
+    );
+    private List<SqlTypedParamValue> param1010 = List.of(
+            new SqlTypedParamValue("INTEGER", 10),
+            new SqlTypedParamValue("INTEGER", 10)
+    );
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -43,131 +66,613 @@ public class TransformerTest {
     public static void tearDownClass() throws Exception {
     }
 
-    @Before
-    public void setUp() throws Exception {
-        param10 = new ArrayList<>();
-
-        param10.add(new SqlTypedParamValue(
-                "Integer", 10));
-
-        param1 = new ArrayList<>();
-
-        param1.add(new SqlTypedParamValue(
-                "Integer", 1));
-
-        param0 = new ArrayList<>();
-
-        param0.add(new SqlTypedParamValue(
-                "Integer", 0));
-
-        param1010.add(new SqlTypedParamValue("Integer", 10));
-        param1010.add(new SqlTypedParamValue("Integer", 10));
-    }
-
     @After
     public void tearDown() throws Exception {
     }
 
     @Test
     public void testMultiPartTableNameWithServerNameAndDatabaseNameAndSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName "
-                + "FROM [server-name\\server-instance].databaseName.schemaName.tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertThrows(net.sf.jsqlparser.JSQLParserException.class, () -> Transformer.transform("SELECT columnName FROM [server-name\\server-instance].databaseName.schemaName.tableName", new ArrayList<>()));
     }
 
     @Test
     public void testMultiPartTableNameWithServerNameAndDatabaseName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName "
-                + "FROM [server-name\\server-instance].databaseName..tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertThrows(net.sf.jsqlparser.JSQLParserException.class, () -> Transformer.transform("SELECT columnName "
+                + "FROM [server-name\\server-instance].databaseName..tableName", new ArrayList<>()));
     }
 
     @Test
     public void testMultiPartTableNameWithServerNameAndSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM [server-name\\server-instance]..schemaName.tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertThrows(net.sf.jsqlparser.JSQLParserException.class, () -> Transformer.transform("SELECT columnName FROM [server-name\\server-instance]..schemaName.tableName", new ArrayList<>()));
     }
 
     @Test
     public void testMultiPartTableNameWithServerProblem() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM LINK_100.htsac.dbo.t_transfer_num a", new ArrayList<>()) instanceof SearchSourceBuilder);
+        SearchSourceBuilder result = Transformer.transform("SELECT * FROM LINK_100.htsac.dbo.t_transfer_num a", new ArrayList<>());
+        logger.log(Level.INFO, "result {0}", result);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM LINK_100.htsac.dbo.t_transfer_num a", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartTableNameWithServerName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM [server-name\\server-instance]...tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertThrows(net.sf.jsqlparser.JSQLParserException.class, () -> Transformer.transform("SELECT columnName FROM [server-name\\server-instance]...tableName", new ArrayList<>()));
     }
 
     @Test
     public void testMultiPartTableNameWithDatabaseNameAndSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM databaseName.schemaName.tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        SearchSourceBuilder result = Transformer.transform("SELECT columnName FROM databaseName.schemaName.tableName", new ArrayList<>());
+        logger.log(Level.INFO, "result {0}", result);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", result.toString());
     }
 
     @Test
     public void testMultiPartTableNameWithDatabaseName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM databaseName..tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT columnName FROM databaseName..tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartTableNameWithSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM schemaName.tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT columnName FROM schemaName.tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartTableNameWithColumnName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithDatabaseNameAndSchemaNameAndTableName() throws Exception {
-        assertTrue(Transformer.transform("SELECT databaseName.schemaName.tableName.columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT databaseName.schemaName.tableName.columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithDatabaseNameAndSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT databaseName.schemaName..columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT databaseName.schemaName..columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithDatabaseNameAndTableName() throws Exception {
-        assertTrue(Transformer.transform("SELECT databaseName..tableName.columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT databaseName..tableName.columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithDatabaseName() throws Exception {
-        assertTrue(Transformer.transform("SELECT databaseName...columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT databaseName...columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithSchemaNameAndTableName() throws Exception {
-        assertTrue(Transformer.transform("SELECT schemaName.tableName.columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT schemaName.tableName.columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithSchemaName() throws Exception {
-        assertTrue(Transformer.transform("SELECT schemaName..columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT schemaName..columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnNameWithTableName() throws Exception {
-        assertTrue(Transformer.transform("SELECT tableName.columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT tableName.columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testMultiPartColumnName() throws Exception {
-        assertTrue(Transformer.transform("SELECT columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testAllColumnsFromTable() throws Exception {
-        assertTrue(Transformer.transform("SELECT tableName.* FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT tableName.* FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testSimpleSigns() throws Exception {
-        assertTrue(Transformer.transform("SELECT +1, -1 FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"+1\",\n" +
+                "    \"-1\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT +1, -1 FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testSimpleAdditionsAndSubtractionsWithSigns() throws Exception {
-        assertTrue(Transformer.transform("SELECT 1 - 1, 1 + 1, -1 - 1, -1 + 1, +1 + 1, +1 - 1 FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"1 - 1\",\n" +
+                "    \"1 + 1\",\n" +
+                "    \"-1 - 1\",\n" +
+                "    \"-1 + 1\",\n" +
+                "    \"+1 + 1\",\n" +
+                "    \"+1 - 1\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT 1 - 1, 1 + 1, -1 - 1, -1 + 1, +1 + 1, +1 - 1 FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
@@ -176,35 +681,275 @@ public class TransformerTest {
 
     @Test
     public void testSignedColumns() throws Exception {
-        assertTrue(Transformer.transform("SELECT -columnName, +columnName, +(columnName), -(columnName) FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"-columnName\",\n" +
+                "    \"+columnName\",\n" +
+                "    \"+(columnName)\",\n" +
+                "    \"-(columnName)\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT -columnName, +columnName, +(columnName), -(columnName) FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testSigns() throws Exception {
-        assertTrue(Transformer.transform("SELECT (-(1)), -(1), (-(columnName)), -(columnName), (-1), -1, (-columnName), -columnName FROM tableName", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"query\" : {\n" +
+                "    \"match_all\" : {\n" +
+                "      \"boost\" : 1.0\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\",\n" +
+                "    \"(-(1))\",\n" +
+                "    \"-(1)\",\n" +
+                "    \"(-(columnName))\",\n" +
+                "    \"-(columnName)\",\n" +
+                "    \"(-1)\",\n" +
+                "    \"-1\",\n" +
+                "    \"(-columnName)\",\n" +
+                "    \"-columnName\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT (-(1)), -(1), (-(columnName)), -(columnName), (-1), -1, (-columnName), -columnName FROM tableName", new ArrayList<>()).toString());
     }
 
     @Test
     public void testLimit() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT 3, ?", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT ? OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 OFFSET ?", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable2 WHERE mytable2.col = 9 OFFSET ?) LIMIT 3, 4", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable2 WHERE mytable2.col = 9 OFFSET ?) LIMIT 4 OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable3 WHERE mytable4.col = 9 OFFSET ?) LIMIT 4 OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"from\" : 3,\n" +
+                "  \"size\" : 10,\n" +
+                "  \"query\" : {\n" +
+                "    \"term\" : {\n" +
+                "      \"col\" : {\n" +
+                "        \"value\" : 9,\n" +
+                "        \"boost\" : 1.0\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT 3, ?", param10).toString());
+
+        assertEquals("{\n" +
+                "  \"from\" : 3,\n" +
+                "  \"size\" : 10,\n" +
+                "  \"query\" : {\n" +
+                "    \"term\" : {\n" +
+                "      \"col\" : {\n" +
+                "        \"value\" : 9,\n" +
+                "        \"boost\" : 1.0\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT ? OFFSET 3", param10).toString());
+
+        assertEquals("{\n" +
+                "  \"from\" : 10,\n" +
+                "  \"query\" : {\n" +
+                "    \"term\" : {\n" +
+                "      \"col\" : {\n" +
+                "        \"value\" : 9,\n" +
+                "        \"boost\" : 1.0\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 OFFSET ?", param10).toString());
+
     }
 
     @Test
     public void testLimit2() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT 3, ?", param10) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT ? OFFSET 3", param10) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT NULL OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT ALL OFFSET 5", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertEquals("{\n" +
+                "  \"from\" : 3,\n" +
+                "  \"query\" : {\n" +
+                "    \"term\" : {\n" +
+                "      \"col\" : {\n" +
+                "        \"value\" : 9,\n" +
+                "        \"boost\" : 1.0\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT NULL OFFSET 3", new ArrayList<>()).toString());
+
+        assertEquals("{\n" +
+                "  \"from\" : 5,\n" +
+                "  \"query\" : {\n" +
+                "    \"term\" : {\n" +
+                "      \"col\" : {\n" +
+                "        \"value\" : 9,\n" +
+                "        \"boost\" : 1.0\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"_source\" : {\n" +
+                "    \"includes\" : [ ],\n" +
+                "    \"excludes\" : [ ]\n" +
+                "  },\n" +
+                "  \"docvalue_fields\" : [\n" +
+                "    \"Message.username\",\n" +
+                "    \"Message.ipaddress\"\n" +
+                "  ],\n" +
+                "  \"script_fields\" : {\n" +
+                "    \"username\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.username'].value!=null?doc['Message.username'].value:doc['TargetUsername.keyword'].value!=null?doc['TargetUsername.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    },\n" +
+                "    \"ipaddress\" : {\n" +
+                "      \"script\" : {\n" +
+                "        \"source\" : \"doc['Message.ipaddress'].value!=null?doc['Message.ipaddress'].value:doc['ip_src_addr.keyword'].value!=null?doc['ip_src_addr.keyword'].value:\\\"\\\"\",\n" +
+                "        \"lang\" : \"painless\"\n" +
+                "      },\n" +
+                "      \"ignore_failure\" : true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}", Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT ALL OFFSET 5", new ArrayList<>()).toString());
         assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 LIMIT 0 OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 OFFSET ?", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable2 WHERE mytable2.col = 9 OFFSET ?) LIMIT 3, 4", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable2 WHERE mytable2.col = 9 OFFSET ?) LIMIT 4 OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform(" (SELECT * FROM mytable3 WHERE mytable4.col = 9 OFFSET ?) LIMIT 4 OFFSET 3", new ArrayList<>()) instanceof SearchSourceBuilder);
+        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 OFFSET ?", param10) instanceof SearchSourceBuilder);
     }
 
     @Test
@@ -386,10 +1131,6 @@ public class TransformerTest {
     @Test
     public void testDistinctTop2() throws Exception {
         assertTrue(Transformer.transform("SELECT TOP 5 DISTINCT myid, mycol FROM mytable WHERE mytable.col = 9", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testDistinctWithFollowingBrackets() throws Exception {
     }
 
     @Test
@@ -1069,14 +1810,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testOracleJoin2_1() {
-    }
-
-    @Test
-    public void testOracleJoin2_2() {
-    }
-
-    @Test
     public void testOracleJoin3() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM tabelle1, tabelle2 WHERE tabelle1.a(+) > tabelle2.b", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -1220,10 +1953,6 @@ public class TransformerTest {
     @Test
     public void testLateral1() throws Exception {
         assertTrue(Transformer.transform("SELECT O.ORDERID, O.CUSTNAME, OL.LINETOTAL FROM ORDERS AS O, LATERAL(SELECT SUM(NETAMT) AS LINETOTAL FROM ORDERLINES AS LINES WHERE LINES.ORDERID = O.ORDERID) AS OL", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testLateralComplex1() throws IOException, JSQLParserException {
     }
 
     @Test
@@ -1393,10 +2122,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testUnPivotWithAlias() throws Exception {
-    }
-
-    @Test
     public void testUnPivot() throws Exception {
         assertTrue(Transformer.transform("  FOR product_code IN (product_a AS 'A', product_b AS 'B', product_c AS 'C'))", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -1419,10 +2144,6 @@ public class TransformerTest {
     @Test
     public void testPivotWithAlias3() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM (SELECT * FROM mytable LEFT JOIN mytable2 ON Factor_ID = Id) PIVOT (max(f.value) FOR f.factoryCode IN (ZD, COD, SW, PH)) d", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testPivotWithAlias4() throws Exception {
     }
 
     @Test
@@ -1591,10 +2312,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testJsonExpressionWithIntegerParameterIssue909() throws Exception {
-    }
-
-    @Test
     public void testSqlNoCache() throws Exception {
         assertTrue(Transformer.transform("SELECT SQL_NO_CACHE sales.date FROM sales", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -1620,21 +2337,9 @@ public class TransformerTest {
     }
 
     @Test
-    public void testSelectJoin() throws Exception {
-    }
-
-    @Test
     public void testSelectJoin2() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM pg_constraint WHERE pg_attribute.attnum = ANY(pg_constraint.conkey)", new ArrayList<>()) instanceof SearchSourceBuilder);
         assertTrue(Transformer.transform("SELECT * FROM pg_constraint WHERE pg_attribute.attnum = ALL(pg_constraint.conkey)", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testAnyConditionSubSelect() throws Exception {
-    }
-
-    @Test
-    public void testAllConditionSubSelect() throws Exception {
     }
 
     @Test
@@ -1922,14 +2627,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testSpeedTestIssue235() throws Exception {
-    }
-
-    @Test
-    public void testSpeedTestIssue235_2() throws IOException, JSQLParserException {
-    }
-
-    @Test
     public void testCastVarCharMaxIssue245() throws Exception {
         assertTrue(Transformer.transform("SELECT CAST('foo' AS NVARCHAR (MAX))", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -1976,18 +2673,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testUniqueInsteadOfDistinctIssue299() throws Exception {
-    }
-
-    @Test
-    public void testProblemSqlIssue265() throws IOException, JSQLParserException {
-    }
-
-    @Test
-    public void testProblemSqlIssue330() throws Exception {
-    }
-
-    @Test
     public void testProblemSqlIssue330_2() throws Exception {
         assertTrue(Transformer.transform("SELECT CAST('90 days' AS interval)", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -1995,26 +2680,6 @@ public class TransformerTest {
     @Test
     public void testProblemKeywordCommitIssue341() throws Exception {
         assertTrue(Transformer.transform("SELECT id, commit FROM table1", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testProblemSqlIssue352() throws Exception {
-    }
-
-    @Test
-    public void testProblemIsIssue331() throws Exception {
-    }
-
-    @Test
-    public void testProblemIssue375() throws Exception {
-    }
-
-    @Test
-    public void testProblemIssue375Simplified() throws Exception {
-    }
-
-    @Test
-    public void testProblemIssue375Simplified2() throws Exception {
     }
 
     @Test
@@ -2095,10 +2760,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testProblemIssue437Index() throws Exception {
-    }
-
-    @Test
     public void testProblemIssue445() throws Exception {
         assertTrue(Transformer.transform("SELECT E.ID_NUMBER, row_number() OVER (PARTITION BY E.ID_NUMBER ORDER BY E.DEFINED_UPDATED DESC) rn FROM T_EMPLOYMENT E", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2141,16 +2802,8 @@ public class TransformerTest {
     }
 
     @Test
-    public void testIssue522() throws Exception {
-    }
-
-    @Test
     public void testIssue522_2() throws Exception {
         assertTrue(Transformer.transform("SELECT -1 * SIGN(mr.quantity_issued) FROM mytable", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testIssue522_3() throws Exception {
     }
 
     @Test
@@ -2171,10 +2824,6 @@ public class TransformerTest {
     @Test
     public void testIssue572TaskReplacement() throws Exception {
         assertTrue(Transformer.transform("SELECT task_id AS \"Task Id\" FROM testtable", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testIssue566LargeView() throws IOException, JSQLParserException {
     }
 
     @Test
@@ -2253,10 +2902,6 @@ public class TransformerTest {
     @Test
     public void testProblemSqlIssue603_2() throws Exception {
         assertTrue(Transformer.transform("SELECT CAST(col1 AS UNSIGNED INTEGER) FROM mytable", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testProblemSqlFuncParamIssue605() throws Exception {
     }
 
     @Test
@@ -2422,14 +3067,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testFuncConditionParameter3() throws Exception {
-    }
-
-    @Test
-    public void testFuncConditionParameter4() throws Exception {
-    }
-
-    @Test
     public void testSqlContainIsNullFunctionShouldBeParsed3() throws Exception {
         assertTrue(Transformer.transform("SELECT name, age FROM person WHERE NOT ISNULL(home, 'earn more money')", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2541,10 +3178,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testDateArithmentic12() throws Exception {
-    }
-
-    @Test
     public void testDateArithmentic13() throws Exception {
         assertTrue(Transformer.transform("String sql = SELECT INTERVAL 5 MONTH MONTH FROM mytable", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2552,10 +3185,6 @@ public class TransformerTest {
     @Test
     public void testRawStringExpressionIssue656() throws Exception {
         assertTrue(Transformer.transform("String sql = select  + prefix + 'test' from foo", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testGroupingSets1() throws Exception {
     }
 
     @Test
@@ -2571,10 +3200,6 @@ public class TransformerTest {
     @Test
     public void testLongQualifiedNamesIssue763() throws Exception {
         assertTrue(Transformer.transform("SELECT mongodb.test.test.intField, postgres.test.test.intField, postgres.test.test.datefield FROM mongodb.test.test JOIN postgres.postgres.test.test ON mongodb.test.test.intField = postgres.test.test.intField WHERE mongodb.test.test.intField = 123", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testLongQualifiedNamesIssue763_2() throws Exception {
     }
 
     @Test
@@ -2623,14 +3248,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testInnerWithBlock() throws Exception {
-    }
-
-    @Test
-    public void testArrayIssue648() throws Exception {
-    }
-
-    @Test
     public void testArrayIssue638() throws Exception {
         assertTrue(Transformer.transform("SELECT PAYLOAD[0] FROM MYTABLE", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2641,20 +3258,8 @@ public class TransformerTest {
     }
 
     @Test
-    public void testArrayIssue377() throws Exception {
-    }
-
-    @Test
-    public void testArrayIssue378() throws Exception {
-    }
-
-    @Test
     public void testArrayRange() throws Exception {
         assertTrue(Transformer.transform("SELECT (arr[1:3])[1] FROM MYTABLE", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testIssue842() throws Exception {
     }
 
     @Test
@@ -2678,10 +3283,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testIssue848_4() throws Exception {
-    }
-
-    @Test
     public void testMultiColumnAliasIssue849() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM mytable AS mytab2(col1, col2)", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2689,10 +3290,6 @@ public class TransformerTest {
     @Test
     public void testMultiColumnAliasIssue849_2() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM crosstab('select rowid, attribute, value from ct where attribute = ''att2'' or attribute = ''att3'' order by 1,2') AS ct(row_name text, category_1 text, category_2 text, category_3 text)", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testLimitClauseDroppedIssue845() throws Exception {
     }
 
     @Test
@@ -2742,29 +3339,13 @@ public class TransformerTest {
     }
 
     @Test
-    public void testKeywordSizeIssue880() throws Exception {
-    }
-
-    @Test
     public void testKeywordCharacterIssue884() throws Exception {
         assertTrue(Transformer.transform("SELECT Character, Duration FROM actor", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
 
     @Test
-    public void testCrossApplyIssue344() throws Exception {
-    }
-
-    @Test
     public void testOuterApplyIssue930() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM mytable D OUTER APPLY (SELECT * FROM mytable2 E WHERE E.ColID = D.ColID) A", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testWrongParseTreeIssue89() throws Exception {
-    }
-
-    @Test
-    public void testCaseWithComplexWhenExpression() throws Exception {
     }
 
     @Test
@@ -2785,14 +3366,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testTableFunctionInExprIssue923_4() throws Exception {
-    }
-
-    @Test
-    public void testTableFunctionInExprIssue923_5() throws Exception {
-    }
-
-    @Test
     public void testTableFunctionInExprIssue923_6() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM mytable WHERE func(a) IN '1'", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2803,16 +3376,8 @@ public class TransformerTest {
     }
 
     @Test
-    public void testKeyWordCreateIssue941_2() throws Exception {
-    }
-
-    @Test
     public void testCurrentIssue940() throws Exception {
         assertTrue(Transformer.transform("SELECT date(current) AS test_date FROM systables WHERE tabid = 1", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testKeyWordView() throws Exception {
     }
 
     @Test
@@ -2971,10 +3536,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testMissingLimitKeywordIssue1006() throws Exception {
-    }
-
-    @Test
     public void testKeywordUnsignedIssue961() throws Exception {
         assertTrue(Transformer.transform("SELECT COLUMN1, COLUMN2, CASE WHEN COLUMN1.DATA NOT IN ('1', '3') THEN CASE WHEN CAST(COLUMN2 AS UNSIGNED) IN ('1', '2', '3') THEN 'Q1' ELSE 'Q2' END END AS YEAR FROM TESTTABLE", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -2995,18 +3556,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testSetOperationWithParenthesisIssue1094_2() throws Exception {
-    }
-
-    @Test
-    public void testSetOperationWithParenthesisIssue1094_3() throws Exception {
-    }
-
-    @Test
-    public void testSetOperationWithParenthesisIssue1094_4() throws Exception {
-    }
-
-    @Test
     public void testSignedKeywordIssue1100() throws Exception {
         assertTrue(Transformer.transform("SELECT signed, unsigned FROM mytable", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -3024,10 +3573,6 @@ public class TransformerTest {
     @Test
     public void testArrayDeclare() throws Exception {
         assertTrue(Transformer.transform("SELECT ARRAY[1, f1], ARRAY[[1, 2], [3, f2 + 1]], ARRAY[]::text[] FROM t1", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testColonDelimiterIssue1134() throws Exception {
     }
 
     @Test
@@ -3066,42 +3611,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testFunctionWithComplexParameters_Issue1190() throws Exception {
-    }
-
-    @Test
-    public void testConditionsWithExtraBrackets_Issue1194() throws Exception {
-    }
-
-    @Test
-    public void testWithValueListWithExtraBrackets1135() throws Exception {
-    }
-
-    @Test
-    public void testWithValueListWithOutExtraBrackets1135() throws Exception {
-    }
-
-    @Test
-    public void testWithInsideWithIssue1186() throws Exception {
-    }
-
-    @Test
-    public void testKeywordSynonymIssue1211() throws Exception {
-    }
-
-    @Test
-    public void testGroupedByIssue1176() throws Exception {
-    }
-
-    @Test
-    public void testGroupedByWithExtraBracketsIssue1210() throws Exception {
-    }
-
-    @Test
-    public void testGroupedByWithExtraBracketsIssue1168() throws Exception {
-    }
-
-    @Test
     public void testSelectRowElement() throws Exception {
         assertTrue(Transformer.transform("SELECT (t.tup).id, (tup).name FROM t WHERE (t.tup).id IN (1, 2, 3)", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -3109,14 +3618,6 @@ public class TransformerTest {
     @Test
     public void testSelectCastProblemIssue1248() throws Exception {
         assertTrue(Transformer.transform("SELECT CAST(t1.sign2 AS Nullable (char))", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testMissinBracketsNestedInIssue() throws Exception {
-    }
-
-    @Test
-    public void testAnyComparisionExpressionValuesList1232() throws Exception {
     }
 
     @Test
@@ -3130,16 +3631,8 @@ public class TransformerTest {
     }
 
     @Test
-    public void testDB2SpecialRegisterDateTimeIssue1249() throws Exception {
-    }
-
-    @Test
     public void testKeywordFilterIssue1255() throws Exception {
         assertTrue(Transformer.transform("SELECT col1 AS filter FROM table", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testConnectByRootIssue1255() throws Exception {
     }
 
     @Test
@@ -3153,67 +3646,6 @@ public class TransformerTest {
     }
 
     @Test
-    public void testCollisionWithSpecialStringFunctionsIssue1284() throws Exception {
-    }
-
-    @Test
-    public void testJoinWithTrailingOnExpressionIssue1302() throws Exception {
-    }
-
-    @Test
-    public void testSimpleJoinOnExpressionIssue1229() throws Exception {
-    }
-
-    @Test
-    public void testNestedCaseComplexExpressionIssue1306() throws Exception {
-    }
-
-    @Test
-    public void testGroupByComplexExpressionIssue1308() throws Exception {
-    }
-
-    @Test
-    public void testReservedKeywordsMSSQLUseIndexIssue1325() throws Exception {
-    }
-
-    @Test
-    public void testReservedKeywordsIssue1352() throws Exception {
-    }
-
-    @Test
-    public void testTableSpaceKeyword() throws Exception {
-    }
-
-    @Test
-    public void testTableSpecificAllColumnsIssue1346() throws Exception {
-    }
-
-    @Test
-    public void testPostgresDollarQuotes_1372() throws Exception {
-        assertTrue(Transformer.transform("SELECT UPPER($$some text$$) FROM a", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM a WHERE a.test = $$where text$$", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM a WHERE a.test = $$$$", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM a WHERE a.test = $$ $$", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT aa AS $$My Column Name$$ FROM a", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testCanCallSubSelectOnWithItemEvenIfNotSetIssue1369() throws Exception {
-    }
-
-    @Test
-    public void testCaseElseExpressionIssue1375() throws Exception {
-    }
-
-    @Test
-    public void testComplexInExpressionIssue905() throws Exception {
-    }
-
-    @Test
-    public void testLogicalExpressionSelectItemIssue1381() throws Exception {
-    }
-
-    @Test
     public void testKeywordAtIssue1414() throws Exception {
         assertTrue(Transformer.transform("SELECT * FROM table1 at", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
@@ -3224,103 +3656,8 @@ public class TransformerTest {
     }
 
     @Test
-    public void testPerformanceIssue1438() throws Exception {
-    }
-
-    @Test
-    public void testPerformanceIssue1397() throws Exception {
-    }
-
-    @Test
-    public void testParserInterruptedByTimeout() throws Exception {
-        assertTrue(Transformer.transform(" \tt1.id ASC", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void run() throws Exception {
-    }
-
-    @Test
-    public void execute() throws Throwable {
-    }
-
-    @Test
     public void testWithIsolation() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 WITH ur", new ArrayList<>()) instanceof SearchSourceBuilder);
-        assertTrue(Transformer.transform("SELECT * FROM mytable WHERE mytable.col = 9 WITH Cs", new ArrayList<>()) instanceof SearchSourceBuilder);
         assertTrue(Transformer.transform("SELECT rs.col, * FROM mytable RS WHERE mytable.col = 9", new ArrayList<>()) instanceof SearchSourceBuilder);
     }
 
-    @Test
-    public void testLoclTimezone1471() throws Exception {
-        assertTrue(Transformer.transform("SELECT TO_CHAR(CAST(SYSDATE AS TIMESTAMP WITH LOCAL TIME ZONE), 'HH:MI:SS AM TZD') FROM DUAL", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testMissingLimitIssue1505() throws Exception {
-        assertTrue(Transformer.transform("(SELECT * FROM mytable) LIMIT 1", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testPostgresNaturalJoinIssue1559() throws Exception {
-    }
-
-    @Test
-    public void testNamedWindowDefinitionIssue1581() throws Exception {
-        assertTrue(Transformer.transform("SELECT sum(salary) OVER w, avg(salary) OVER w FROM empsalary WINDOW w AS (PARTITION BY depname ORDER BY salary DESC)", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testNamedWindowDefinitionIssue1581_2() throws Exception {
-        assertTrue(Transformer.transform("SELECT sum(salary) OVER w1, avg(salary) OVER w2 FROM empsalary WINDOW w1 AS (PARTITION BY depname ORDER BY salary DESC), w2 AS (PARTITION BY depname2 ORDER BY salary2)", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    @Test
-    public void testTimestamptzDateTimeLiteral() throws Exception {
-        assertTrue(Transformer.transform("SELECT * FROM table WHERE x >= TIMESTAMPTZ '2021-07-05 00:00:00+00'", new ArrayList<>()) instanceof SearchSourceBuilder);
-    }
-
-    /**
-     * Test of transform method, of class Transformer.
-     */
-    @org.junit.Test
-    public void testTransform() throws Exception {
-        System.out.println("transform");
-        String sql = "";
-        List<SqlTypedParamValue> params = new ArrayList<>();
-        SearchSourceBuilder expResult = null;
-        SearchSourceBuilder result = Transformer.transform(sql, params);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        //fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of order method, of class Transformer.
-     */
-    @org.junit.Test
-    public void testOrder() {
-        System.out.println("order");
-        List<OrderByElement> orderByElements = null;
-        Transformer instance = new Transformer();
-        instance.order(orderByElements);
-        // TODO review the generated test code and remove the default call to fail.
-        //fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of sqlSelectQueryToElasticSearchQuery method, of class Transformer.
-     */
-    @org.junit.Test
-    public void testSqlSelectQueryToElasticSearchQuery() throws Exception {
-        System.out.println("sqlSelectQueryToElasticSearchQuery");
-        String sql = "";
-        List<SqlTypedParamValue> params = null;
-        Transformer instance = new Transformer();
-        SearchSourceBuilder expResult = null;
-        SearchSourceBuilder result = instance.sqlSelectQueryToElasticSearchQuery(sql, params);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        //fail("The test case is a prototype.");
-    }
 }

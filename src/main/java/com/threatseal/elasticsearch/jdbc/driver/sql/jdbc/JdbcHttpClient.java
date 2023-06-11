@@ -106,6 +106,7 @@ class JdbcHttpClient {
             restHighLevelClient = new RestHighLevelClient(restClient);
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Exception initializing RestHighLevelClient {0}", e.getMessage());
+            //throw new SQLException("Exception initializing RestHighLevelClient ", e);
         }
         if (checkServer) {
             this.serverInfo = fetchServerInfo();

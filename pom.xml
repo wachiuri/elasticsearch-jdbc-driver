@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.threatseal</groupId>
     <artifactId>elasticsearch-jdbc-driver</artifactId>
@@ -9,7 +10,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <skipTests>true</skipTests>
+        <skipTests>false</skipTests>
     </properties>
     <dependencies>
         <dependency>
@@ -34,19 +35,14 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>transport</artifactId>
+            <groupId>org.elasticsearch.plugin</groupId>
+            <artifactId>transport-netty4-client</artifactId>
             <version>5.6.16</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.19.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.19.0</version>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>transport</artifactId>
+            <version>5.6.16</version>
         </dependency>
         <dependency>
             <groupId>com.github.jsqlparser</groupId>
@@ -98,7 +94,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M7</version>
                 <configuration>
-                    <skipTests>${skipTests}</skipTests>
+                    <skipTests>true</skipTests>
                 </configuration>
             </plugin>
             <plugin>
@@ -111,7 +107,9 @@
                             <directory>dist</directory>
                         </fileset>
                         <fileset>
-                            <directory>C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\jasperserver\WEB-INF\lib</directory>
+                            <directory>C:\Program Files\Apache Software Foundation\Tomcat
+                                9.0\webapps\jasperserver\WEB-INF\lib
+                            </directory>
                             <includes>
                                 <include>
                                     elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
@@ -163,10 +161,13 @@
                             <fileSets>
                                 <!-- -->
                                 <fileSet>
-                                    <sourceFile>target/elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar</sourceFile>
-                                    <destinationFile>C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\jasperserver\WEB-INF\lib\elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar</destinationFile>
+                                    <sourceFile>target/elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
+                                    </sourceFile>
+                                    <destinationFile>C:\Program Files\Apache Software Foundation\Tomcat
+                                        9.0\webapps\jasperserver\WEB-INF\lib\elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
+                                    </destinationFile>
                                 </fileSet>
-                                                    <!-- -->
+                                <!-- -->
                             </fileSets>
                         </configuration>
                     </execution>
@@ -194,6 +195,6 @@
                 <version>3.2.1</version>
             </plugin>
         </plugins>
-        
+
     </build>
 </project>
