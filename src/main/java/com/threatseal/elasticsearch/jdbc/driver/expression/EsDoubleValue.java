@@ -14,7 +14,7 @@ import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
 /**
  * Every number with a point or a exponential format is a DoubleValue
  */
-public class EsDoubleValue extends BranchImpl{
+public class EsDoubleValue extends BranchImpl {
 
     private double value;
     private String stringValue;
@@ -37,6 +37,7 @@ public class EsDoubleValue extends BranchImpl{
     }
 
     public void setValue(double d) {
+        stringValue = "" + d;
         value = d;
     }
 

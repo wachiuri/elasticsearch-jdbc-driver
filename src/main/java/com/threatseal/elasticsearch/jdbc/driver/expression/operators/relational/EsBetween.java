@@ -30,6 +30,8 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
     private Branch betweenExpressionStart;
     private Branch betweenExpressionEnd;
 
+    private String timeZone;
+
     public Branch getBetweenExpressionEnd() {
         return betweenExpressionEnd;
     }
@@ -44,6 +46,14 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
 
     public boolean isNot() {
         return not;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
     }
 
     public void setBetweenExpressionEnd(Branch expression) {
@@ -98,6 +108,11 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
         return this;
     }
 
+    public EsBetween withTimeZone(String timeZone) {
+        this.timeZone = timeZone;
+        return this;
+    }
+
     public <E extends Expression> E getBetweenExpressionEnd(Class<E> type) {
         return type.cast(getBetweenExpressionEnd());
     }
@@ -105,6 +120,8 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
     public <E extends Expression> E getBetweenExpressionStart(Class<E> type) {
         return type.cast(getBetweenExpressionStart());
     }
+
+
 
     public <E extends Expression> E getLeftExpression(Class<E> type) {
         return type.cast(getLeftExpression());
@@ -121,6 +138,11 @@ public class EsBetween extends BranchImpl implements EsQueryBuilder {
         if (getLeftExpression().toString().equals("timestamp")) {
             rangeQueryBuilder.format("yyyy-MM-dd");
         }
+
+        if(!timeZone.isEmpty()){
+            rangeQueryBuilder.timeZone(timeZone);
+        }
+
         if (isNot()) {
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery()
                     .mustNot(rangeQueryBuilder);

@@ -71,7 +71,7 @@ public class Transformer {
         return transformer.sqlSelectQueryToElasticSearchQuery(sql, params);
     }
 
-    protected void groupBy(GroupByElement groupByElement) {
+    protected void groupBy(GroupByElement groupByElement, String timeZone) {
 
         try {
             //logger.log(Level.FINE,"grouping sets " + groupByElement.getGroupingSets());
@@ -89,7 +89,7 @@ public class Transformer {
                             .order(Histogram.Order.COUNT_DESC)
                     );
                 } else {
-                    EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY);
+                    EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.GROUPBY, timeZone);
                     term.accept(eeva);
                     logger.log(Level.FINE, "group by stack {0}", eeva.getStack());
                     logger.log(Level.FINE, "toObject {0}", eeva.getStack().peek().toObject());
@@ -109,14 +109,14 @@ public class Transformer {
         }
     }
 
-    protected void where(Expression whereExpression) {
+    protected void where(Expression whereExpression, String timeZone) {
 
         if (whereExpression == null) {
             sourceBuilder.query(QueryBuilders.matchAllQuery());
             return;
         }
 
-        EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.WHERE);
+        EsExpressionVisitorAdapter eeva = new EsExpressionVisitorAdapter(SQLStatementSection.WHERE, timeZone);
         try {
             whereExpression.accept(eeva);
         } catch (Exception e) {
@@ -186,6 +186,7 @@ public class Transformer {
     public SearchSourceBuilder sqlSelectQueryToElasticSearchQuery(String sql, List<SqlTypedParamValue> params) throws JSQLParserException {
 
         String paramString;
+        int noOfReplacedParams = 0;
         for (SqlTypedParamValue param : params) {
             paramString = "";
             int parameterIndex = sql.indexOf("?");
@@ -230,6 +231,8 @@ public class Transformer {
 
             sql = sql.substring(0, parameterIndex).concat(paramString)
                     .concat(sql.substring(parameterIndex + 1, sql.length()));
+
+            noOfReplacedParams++;
         }
         sql = sql.replace("\n", " ");
 
@@ -237,6 +240,11 @@ public class Transformer {
         Statement stmt = CCJSqlParserUtil.parse(sql);
 
         EsStatementVisitorAdapter statementVisitorAdapter = new EsStatementVisitorAdapter();
+
+        String timeZone = "";
+        if (noOfReplacedParams < params.size()) {
+            timeZone = params.get(params.size() - 1).value.toString();
+        }
 
         stmt.accept(statementVisitorAdapter);
 
@@ -271,12 +279,12 @@ public class Transformer {
         Expression where = selectStatement.getWhere();
         //logger.log(Level.FINE,"where expression " + where);
 
-        where(where);
+        where(where, timeZone);
 
         GroupByElement groupByElement = selectStatement.getGroupBy();
         //logger.log(Level.FINE,"group by element " + groupByElement);
         if (groupByElement != null) {
-            groupBy(groupByElement);
+            groupBy(groupByElement, timeZone);
         }
 
         if (sourceBuilder.aggregations() != null && !sourceBuilder.aggregations().getAggregatorFactories().isEmpty()) {

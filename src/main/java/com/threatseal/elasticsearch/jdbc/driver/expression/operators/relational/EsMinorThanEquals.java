@@ -15,8 +15,11 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
 
 public class EsMinorThanEquals extends EsComparisonOperator implements EsQueryBuilder{
+
+    private String timeZone;
 
     public EsMinorThanEquals() {
         super("<=");
@@ -24,6 +27,14 @@ public class EsMinorThanEquals extends EsComparisonOperator implements EsQueryBu
 
     public EsMinorThanEquals(String operator) {
         super(operator);
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone;
     }
 
     @Override
@@ -36,9 +47,22 @@ public class EsMinorThanEquals extends EsComparisonOperator implements EsQueryBu
         return (EsMinorThanEquals) super.withRightExpression(arg0);
     }
 
+    public EsMinorThanEquals withTimeZone(String timeZone){
+        this.timeZone = timeZone;
+        return this;
+    }
+
     @Override
     public QueryBuilder toQueryBuilder() {
-        return QueryBuilders.rangeQuery(getLeftExpression().toString())
-                .lte(getRightExpression().toObject());
+
+        RangeQueryBuilder rangeQueryBuilder=
+         QueryBuilders.rangeQuery(getLeftExpression().toString())
+             .lte(getRightExpression().toObject());
+
+        if(!timeZone.isEmpty()){
+            rangeQueryBuilder.timeZone(timeZone);
+        }
+
+        return rangeQueryBuilder;
     }
 }

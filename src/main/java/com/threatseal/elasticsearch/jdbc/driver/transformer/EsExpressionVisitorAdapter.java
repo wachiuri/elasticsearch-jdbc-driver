@@ -202,7 +202,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author Timothy Wachiuri
  */
 public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
@@ -211,13 +210,16 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
 
     private final SQLStatementSection sQLStatementSection;
 
+    private final String timeZone;
+
     private final Stack<Branch> stack = new Stack();
 
     private final List<String> list = new ArrayList();
 
-    public EsExpressionVisitorAdapter(SQLStatementSection sQLStatementSection) {
+    public EsExpressionVisitorAdapter(SQLStatementSection sQLStatementSection, String timeZone) {
 
         this.sQLStatementSection = sQLStatementSection;
+        this.timeZone = timeZone;
 
     }
 
@@ -272,11 +274,13 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         this.stack.push(parent);
         if (function.getParameters() != null) {
             function.getParameters().accept(this);
-            parent.setParameters((EsExpressionList) this.stack.pop());;
+            parent.setParameters((EsExpressionList) this.stack.pop());
+            ;
         }
         if (function.getNamedParameters() != null) {
             function.getNamedParameters().accept(this);
-            parent.setNamedParameters((EsNamedExpressionList) this.stack.pop());;
+            parent.setNamedParameters((EsNamedExpressionList) this.stack.pop());
+            ;
         }
         if (function.getKeep() != null) {
             function.getKeep().accept(this);
@@ -468,6 +472,8 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         expr.getBetweenExpressionEnd().accept(this);
         parent.setBetweenExpressionEnd(this.stack.pop());
 
+        parent.setTimeZone(timeZone);
+
     }
 
     @Override
@@ -488,7 +494,7 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        this.stack.push(new EsGreaterThan());
+        this.stack.push(new EsGreaterThan().withTimeZone(timeZone));
         visitBinaryExpression(expr);
     }
 
@@ -497,7 +503,7 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        this.stack.push(new EsGreaterThanEquals());
+        this.stack.push(new EsGreaterThanEquals().withTimeZone(timeZone));
         visitBinaryExpression(expr);
     }
 
@@ -594,7 +600,7 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        EsMinorThan parent = new EsMinorThan();
+        EsMinorThan parent = new EsMinorThan().withTimeZone(timeZone);
         this.stack.push(parent);
         visitBinaryExpression(expr);
     }
@@ -604,7 +610,7 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
         log(new Object() {
         }.getClass().getEnclosingMethod());
 
-        EsMinorThanEquals parent = new EsMinorThanEquals(expr.getStringExpression());
+        EsMinorThanEquals parent = new EsMinorThanEquals(expr.getStringExpression()).withTimeZone(timeZone);
 
         this.stack.push(parent);
         visitBinaryExpression(expr);
