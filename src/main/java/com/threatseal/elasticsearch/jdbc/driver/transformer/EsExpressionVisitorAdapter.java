@@ -238,13 +238,13 @@ public class EsExpressionVisitorAdapter extends ExpressionVisitorAdapter {
             message += classs.getSimpleName() + ",";
         }
 
-        logger.log(Level.FINE, "message " + message);
-        logger.log(Level.FINE, "stack [");
+        logger.log(Level.FINER, "message " + message);
+        logger.log(Level.FINER, "stack [");
         stack.forEach(action -> {
-            logger.log(Level.FINE, action + ":" + action.getClass().getSimpleName() + ",");
+            logger.log(Level.FINER, action + ":" + action.getClass().getSimpleName() + ",");
         });
-        logger.log(Level.FINE, "]");
-        logger.log(Level.FINE, "stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
+        logger.log(Level.FINER, "]");
+        logger.log(Level.FINER, "stack top " + (stack.empty() ? "EMPTY" : stack.peek()));
         //this.stack.push(method.getParameters()[0]);
         this.list.add("\"" + method.getParameters()[0].getType().getName() + "\"");
     }
