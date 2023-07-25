@@ -3,7 +3,11 @@ package com.threatseal.elasticsearch.jdbc.driver.transformer;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItemVisitorAdapter;
 
+import java.util.logging.Logger;
+
 public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
+
+    private final Logger logger = Logger.getLogger(getClass().getName());
 
     private String field;
 
@@ -11,7 +15,9 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
 
     @Override
     public void visit(SelectExpressionItem item) {
-        String string = item.toString();
+
+        String string = item.toString().trim();
+
         if (string.startsWith("`") && string.endsWith("`")) {
             string = string.substring(1, string.length() - 1);
         }
