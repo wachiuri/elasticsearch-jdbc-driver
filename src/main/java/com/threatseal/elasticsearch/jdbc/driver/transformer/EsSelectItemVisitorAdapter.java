@@ -11,12 +11,17 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
 
     @Override
     public void visit(SelectExpressionItem item) {
-        String[] aliasExpression = item.toString().split("\\b[aA][sS]\\b|\\s");
+        String string = item.toString();
+        if (string.startsWith("`") && string.endsWith("`")) {
+            string = string.substring(1, string.length() - 1);
+        }
+
+        String[] aliasExpression = string.split("\\b[aA][sS]\\b|\\s");
         if (aliasExpression.length > 1) {
             this.field = aliasExpression[0];
             this.alias = aliasExpression[1];
         } else {
-            this.field = item.toString();
+            this.field = string;
         }
 
         String[] expressions = this.field.split("\\.");
