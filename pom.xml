@@ -107,9 +107,7 @@
                             <directory>dist</directory>
                         </fileset>
                         <fileset>
-                            <directory>C:\Program Files\Apache Software Foundation\Tomcat
-                                9.0\webapps\jasperserver\WEB-INF\lib
-                            </directory>
+                            <directory>C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\jasperserver\WEB-INF\lib</directory>
                             <includes>
                                 <include>
                                     elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
@@ -163,9 +161,7 @@
                                 <fileSet>
                                     <sourceFile>target/elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
                                     </sourceFile>
-                                    <destinationFile>C:\Program Files\Apache Software Foundation\Tomcat
-                                        9.0\webapps\jasperserver\WEB-INF\lib\elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar
-                                    </destinationFile>
+                                    <destinationFile>C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\jasperserver\WEB-INF\lib\elasticsearch-jdbc-driver-5.6.16-jar-with-dependencies.jar</destinationFile>
                                 </fileSet>
                                 <!-- -->
                             </fileSets>

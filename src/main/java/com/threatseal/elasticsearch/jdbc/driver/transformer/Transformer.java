@@ -15,9 +15,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,6 +58,8 @@ public class Transformer {
 
     private final List<String> csvList = new ArrayList<>();
 
+    private final Map<String, String> aliases = new HashMap<>();
+
     public Transformer() {
         sourceBuilder = new SearchSourceBuilder();
     }
@@ -69,6 +69,10 @@ public class Transformer {
         Transformer transformer = new Transformer();
 
         return transformer.sqlSelectQueryToElasticSearchQuery(sql, params);
+    }
+
+    public Map<String, String> getAliases() {
+        return aliases;
     }
 
     protected void groupBy(GroupByElement groupByElement, String timeZone) {
@@ -317,6 +321,10 @@ public class Transformer {
                     EsSelectItemVisitorAdapter esSelectItemVisitorAdapter = new EsSelectItemVisitorAdapter();
 
                     selectExpressionItem.accept(esSelectItemVisitorAdapter);
+
+                    if (esSelectItemVisitorAdapter.getAlias() != null) {
+                        this.aliases.put(esSelectItemVisitorAdapter.getField(), esSelectItemVisitorAdapter.getAlias());
+                    }
 
                     sourceBuilder.docValueField(esSelectItemVisitorAdapter.getField());
                 }

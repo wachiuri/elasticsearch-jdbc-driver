@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.threatseal.elasticsearch.jdbc.driver.sql.client.StringUtils.EMPTY;
+
 import com.threatseal.elasticsearch.jdbc.driver.transformer.Transformer;
+
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Arrays;
@@ -34,6 +36,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import net.sf.jsqlparser.JSQLParserException;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.search.SearchRequest;
@@ -47,6 +50,7 @@ import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram.Bucket;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+
 import java.util.logging.Level;
 
 /**
@@ -78,12 +82,12 @@ class JdbcHttpClient {
         logger.log(Level.FINE, "jdbc conCfg {0}", conCfg);
 
         logger.log(Level.FINE, "authPass {0} authUser {1} baseUri {2} connectTimeout {3} connectionString {4}", new Object[]{
-            conCfg.authPass(),
-            conCfg.authUser(),
-            conCfg.baseUri(),
-            conCfg.connectTimeout(),
-            conCfg.connectionString()
-        }
+                        conCfg.authPass(),
+                        conCfg.authUser(),
+                        conCfg.baseUri(),
+                        conCfg.connectTimeout(),
+                        conCfg.connectionString()
+                }
         );
         connect();
     }
@@ -95,12 +99,12 @@ class JdbcHttpClient {
         logger.log(Level.FINE, "configurations {0}", configurations);
 
         restClient = RestClient.builder(new HttpHost(configurations[2].replace("//", ""),
-                Integer.parseInt(configurations[3]), "http")
-        ).setRequestConfigCallback(
-                requestConfigBuilder -> requestConfigBuilder
-                        .setConnectTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
-                        .setSocketTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
-        )
+                        Integer.parseInt(configurations[3]), "http")
+                ).setRequestConfigCallback(
+                        requestConfigBuilder -> requestConfigBuilder
+                                .setConnectTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
+                                .setSocketTimeout(Long.valueOf(conCfg.connectTimeout()).intValue())
+                )
                 .build();
         try {
             restHighLevelClient = new RestHighLevelClient(restClient);
@@ -148,7 +152,9 @@ class JdbcHttpClient {
             logger.log(Level.FINE, "params {0} ", params);
             logger.log(Level.FINE, "meta {0}", meta);
 
-            SearchSourceBuilder sourceBuilder = Transformer.transform(sql, params);
+            Transformer transformer = new Transformer();
+
+            SearchSourceBuilder sourceBuilder = transformer.sqlSelectQueryToElasticSearchQuery(sql, params);
 
             SearchRequest searchRequest = new SearchRequest();
             searchRequest.source(sourceBuilder);
@@ -236,12 +242,14 @@ class JdbcHttpClient {
                     fieldSet.addAll(hit.getFields().keySet());
                 }
 
+                fieldSet.addAll(transformer.getAliases().keySet());
+
                 for (SearchHit hit : searchResponse.getHits().getHits()) {
 
                     List<Object> row = new ArrayList<>();
 
                     for (String fieldName : fieldSet) {
-                        if (hit.getSource().keySet().contains(fieldName)) {
+                        if (hit.getSource().containsKey(fieldName)) {
                             if (hit.getSource().get(fieldName) == null) {
                                 row.add("");
                             } else {
@@ -256,11 +264,32 @@ class JdbcHttpClient {
                         } else {
                             row.add("");
                         }
+
+                    }
+
+                    for(String alias: transformer.getAliases().keySet()) {
+                        if (hit.getSource().containsKey(alias)) {
+                            if (hit.getSource().get(alias) == null) {
+                                row.add(transformer.getAliases().get(alias));
+                            } else {
+                                row.add(hit.getSource().get(transformer.getAliases().get(alias)));
+                            }
+                        } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
+                            String value = "";
+                            for (Object object : hit.getField(transformer.getAliases().get(alias)).getValues()) {
+                                value += (String) object + ",";
+                            }
+                            row.add(value);
+                        } else {
+                            row.add("");
+                        }
                     }
 
                     rows.add(row);
 
                 }
+
+
 
                 for (String field : fieldSet) {
                     searchFields.add(new JdbcColumnInfo(
@@ -352,9 +381,9 @@ class JdbcHttpClient {
         if (ClientVersion.isServerCompatible(serverInfo.version) == false) {
             throw new SQLException(
                     "This version of the JDBC driver is only compatible with Elasticsearch version "
-                    + ClientVersion.CURRENT.majorMinorToString()
-                    + " or newer; attempting to connect to a server version "
-                    + serverInfo.version.toString()
+                            + ClientVersion.CURRENT.majorMinorToString()
+                            + " or newer; attempting to connect to a server version "
+                            + serverInfo.version.toString()
             );
         }
     }
