@@ -23,6 +23,9 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
 
         logger.log(Level.FINE, "trimmed {0}", string);
 
+        logger.log(Level.FINE,"starts with ` {0}", string.startsWith("`"));
+        logger.log(Level.FINE,"ends with ` {0}", string.endsWith("`"));
+
         if (string.startsWith("`") && string.endsWith("`")) {
             string = string.substring(1, string.length() - 1);
         }
