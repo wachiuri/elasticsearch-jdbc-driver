@@ -42,7 +42,7 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
         logger.log(Level.FINE, "ends with ` {0}", this.field.endsWith("`"));
 
         if (this.field.startsWith("`") && this.field.endsWith("`")) {
-            this.field = this.field.substring(1, this.field.length() - 2);
+            this.field = this.field.substring(1, this.field.length() - 1);
         }
     }
 
