@@ -23,18 +23,11 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
 
         logger.log(Level.FINE, "trimmed {0}", string);
 
-        logger.log(Level.FINE, "starts with ` {0}", string.startsWith("`"));
-        logger.log(Level.FINE, "ends with ` {0}", string.endsWith("`"));
-
-        if (string.startsWith("`") || string.endsWith("`")) {
-            string = string.substring(1, string.length() - 2);
-        }
-
         logger.log(Level.FINE, "unquoted {0}", string);
 
         String[] aliasExpression = string.split("\\b[aA][sS]\\b|\\s");
 
-        logger.log(Level.FINE, "aliasExpression {0}", new Object[]{aliasExpression[0], aliasExpression[1]});
+        logger.log(Level.FINE, "aliasExpression {0} {1}", new Object[]{aliasExpression[0], aliasExpression[1]});
 
         if (aliasExpression.length > 1) {
             this.field = aliasExpression[0];
@@ -44,6 +37,13 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
         }
 
         logger.log(Level.FINE, "field {0} alias {1}", new String[]{this.field, this.alias});
+
+        logger.log(Level.FINE, "starts with ` {0}", this.field.startsWith("`"));
+        logger.log(Level.FINE, "ends with ` {0}", this.field.endsWith("`"));
+
+        if (this.field.startsWith("`") && this.field.endsWith("`")) {
+            this.field = this.field.substring(1, this.field.length() - 2);
+        }
     }
 
     public String getField() {
