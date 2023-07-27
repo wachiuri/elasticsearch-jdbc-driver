@@ -27,7 +27,7 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
         logger.log(Level.FINE, "ends with ` {0}", string.endsWith("`"));
 
         if (string.startsWith("`") || string.endsWith("`")) {
-            string = string.substring(1, string.length() - 1);
+            string = string.substring(1, string.length() - 2);
         }
 
         logger.log(Level.FINE, "unquoted {0}", string);
