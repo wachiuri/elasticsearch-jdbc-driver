@@ -242,7 +242,7 @@ class JdbcHttpClient {
                     fieldSet.addAll(hit.getFields().keySet());
                 }
 
-                fieldSet.addAll(transformer.getAliases().keySet());
+                fieldSet.addAll(transformer.getAliases().values());
 
                 for (SearchHit hit : searchResponse.getHits().getHits()) {
 
