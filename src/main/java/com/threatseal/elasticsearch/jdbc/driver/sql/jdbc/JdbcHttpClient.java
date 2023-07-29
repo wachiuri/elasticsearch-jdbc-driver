@@ -244,6 +244,10 @@ class JdbcHttpClient {
 
                 fieldSet.addAll(transformer.getAliases().values());
 
+                logger.log(Level.FINE, "aliases {0}", transformer.getAliases());
+                logger.log(Level.FINE, "aliases values {0}", transformer.getAliases().values());
+                logger.log(Level.FINE, "aliases keys {0}", transformer.getAliases().keySet());
+
                 for (SearchHit hit : searchResponse.getHits().getHits()) {
 
                     List<Object> row = new ArrayList<>();
@@ -267,12 +271,13 @@ class JdbcHttpClient {
 
                     }
 
-                    for(String alias: transformer.getAliases().keySet()) {
+                    for (String alias : transformer.getAliases().keySet()) {
                         logger.log(Level.FINE, "alias {0}", alias);
                         if (hit.getSource().containsKey(alias)) {
                             if (hit.getSource().get(alias) == null) {
                                 row.add("");
                             } else {
+                                logger.log(Level.FINE, "adding {0}", hit.getSource().get(alias));
                                 row.add(hit.getSource().get(alias));
                             }
                         } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
@@ -280,8 +285,10 @@ class JdbcHttpClient {
                             for (Object object : hit.getField(alias).getValues()) {
                                 value += (String) object + ",";
                             }
+                            logger.log(Level.FINE, "adding {0}", value);
                             row.add(value);
                         } else {
+                            logger.log(Level.FINE, "adding {0}", "");
                             row.add("");
                         }
                     }
