@@ -237,7 +237,6 @@ class JdbcHttpClient {
                 Set<String> fieldSet = new HashSet<>();
 
                 for (SearchHit hit : searchResponse.getHits().getHits()) {
-
                     fieldSet.addAll(hit.getSource().keySet());
                     fieldSet.addAll(hit.getFields().keySet());
                 }
