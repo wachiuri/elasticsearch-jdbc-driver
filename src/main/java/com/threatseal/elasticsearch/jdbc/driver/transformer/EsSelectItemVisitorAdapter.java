@@ -18,8 +18,10 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
     public void visit(SelectExpressionItem item) {
 
         logger.log(Level.FINE, "item expression {0}", item.getExpression().toString());
+        logger.log(Level.FINE, "item {0}", item.toString());
 
-        String string = item.getExpression().toString().trim();
+
+        String string = item.toString().trim();
 
         logger.log(Level.FINE, "trimmed {0}", string);
 
