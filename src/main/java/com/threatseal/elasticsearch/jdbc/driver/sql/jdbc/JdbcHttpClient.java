@@ -268,15 +268,16 @@ class JdbcHttpClient {
                     }
 
                     for(String alias: transformer.getAliases().keySet()) {
+                        logger.log(Level.FINE, "alias {0}", alias);
                         if (hit.getSource().containsKey(alias)) {
                             if (hit.getSource().get(alias) == null) {
-                                row.add(transformer.getAliases().get(alias));
+                                row.add("");
                             } else {
-                                row.add(hit.getSource().get(transformer.getAliases().get(alias)));
+                                row.add(hit.getSource().get(alias));
                             }
                         } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
                             String value = "";
-                            for (Object object : hit.getField(transformer.getAliases().get(alias)).getValues()) {
+                            for (Object object : hit.getField(alias).getValues()) {
                                 value += (String) object + ",";
                             }
                             row.add(value);
@@ -288,8 +289,6 @@ class JdbcHttpClient {
                     rows.add(row);
 
                 }
-
-
 
                 for (String field : fieldSet) {
                     searchFields.add(new JdbcColumnInfo(
@@ -307,7 +306,7 @@ class JdbcHttpClient {
             logger.log(Level.FINE, "fields {0}", searchFields);
             Logger.getLogger(JdbcHttpClient.class.getName()).log(Level.FINER, "fields", searchFields);
 
-//            logger.log(Level.FINE, "rows {0}", rows);
+            logger.log(Level.FINE, "rows {0}", rows);
             return new DefaultCursor(this, "cursor", searchFields, rows, meta, Collections.EMPTY_LIST);
 
         } catch (IOException ex) {
