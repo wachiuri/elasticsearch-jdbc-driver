@@ -292,7 +292,7 @@ class JdbcHttpClient {
                         }
                     }
 
-                    logger.log(Level.FINE, "row length is equal to field length {0}", row.size()==fieldSet.size());
+                    logger.log(Level.FINE, "row length {0} field length {1}", new Object[]{row.size(), fieldSet.size()});
 
                     rows.add(row);
 
