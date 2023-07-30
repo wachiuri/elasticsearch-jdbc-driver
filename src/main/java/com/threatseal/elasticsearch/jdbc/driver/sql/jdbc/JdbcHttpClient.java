@@ -18,8 +18,7 @@ import com.threatseal.elasticsearch.jdbc.driver.proto.SqlVersion;
 import com.threatseal.elasticsearch.jdbc.driver.proto.core.Tuple;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static com.threatseal.elasticsearch.jdbc.driver.sql.client.StringUtils.EMPTY;
 
@@ -27,13 +26,6 @@ import com.threatseal.elasticsearch.jdbc.driver.transformer.Transformer;
 
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -243,6 +235,13 @@ class JdbcHttpClient {
 
                 fieldSet.addAll(transformer.getAliases().values());
 
+
+                Map<String, String> reverseAliases = new HashMap<>();
+
+                for(String key : transformer.getAliases().keySet()) {
+                    reverseAliases.put(transformer.getAliases().get(key), key);
+                }
+
                 logger.log(Level.FINE, "aliases {0}", transformer.getAliases());
                 logger.log(Level.FINE, "aliases values {0}", transformer.getAliases().values());
                 logger.log(Level.FINE, "aliases keys {0}", transformer.getAliases().keySet());
@@ -252,6 +251,9 @@ class JdbcHttpClient {
                     List<Object> row = new ArrayList<>();
 
                     for (String fieldName : fieldSet) {
+                        if (transformer.getAliases().containsValue(fieldName)){
+                            fieldName = reverseAliases.get(fieldName);
+                        }
                         if (hit.getSource().containsKey(fieldName)) {
                             if (hit.getSource().get(fieldName) == null) {
                                 row.add("");
@@ -268,28 +270,6 @@ class JdbcHttpClient {
                             row.add("");
                         }
 
-                    }
-
-                    for (String alias : transformer.getAliases().keySet()) {
-                        logger.log(Level.FINE, "alias {0}", alias);
-                        if (hit.getSource().containsKey(alias)) {
-                            if (hit.getSource().get(alias) == null) {
-                                row.add("");
-                            } else {
-                                logger.log(Level.FINE, "adding value from source {0}", hit.getSource().get(alias));
-                                row.add(hit.getSource().get(alias));
-                            }
-                        } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
-                            String value = "";
-                            for (Object object : hit.getField(alias).getValues()) {
-                                value += (String) object + ",";
-                            }
-                            logger.log(Level.FINE, "adding value from fields {0}", value);
-                            row.add(value);
-                        } else {
-                            logger.log(Level.FINE, "adding empty value {0}", "");
-                            row.add("");
-                        }
                     }
 
                     logger.log(Level.FINE, "row length {0} field length {1}", new Object[]{row.size(), fieldSet.size()});
