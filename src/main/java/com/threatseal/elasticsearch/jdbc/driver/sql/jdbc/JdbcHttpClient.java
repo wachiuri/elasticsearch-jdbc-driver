@@ -282,7 +282,7 @@ class JdbcHttpClient {
                         } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
                             String value = "";
                             for (Object object : hit.getField(alias).getValues()) {
-                                value += (String) object + " ";
+                                value += (String) object + ",";
                             }
                             logger.log(Level.FINE, "adding value from fields {0}", value);
                             row.add(value);
@@ -294,6 +294,11 @@ class JdbcHttpClient {
 
                     logger.log(Level.FINE, "row length {0} field length {1}", new Object[]{row.size(), fieldSet.size()});
 
+                    int counter = 0;
+                    for (String field : fieldSet) {
+                        logger.log(Level.FINE, "field {0}={1}", new Object[]{field, row.get(counter)});
+                        counter++;
+                    }
                     rows.add(row);
 
                 }
