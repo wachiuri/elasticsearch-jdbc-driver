@@ -276,21 +276,23 @@ class JdbcHttpClient {
                             if (hit.getSource().get(alias) == null) {
                                 row.add("");
                             } else {
-                                logger.log(Level.FINE, "adding {0}", hit.getSource().get(alias));
+                                logger.log(Level.FINE, "adding value from source {0}", hit.getSource().get(alias));
                                 row.add(hit.getSource().get(alias));
                             }
                         } else if (hit.getFields() != null && hit.getFields().containsKey(alias)) {
                             String value = "";
                             for (Object object : hit.getField(alias).getValues()) {
-                                value += (String) object + ",";
+                                value += (String) object + " ";
                             }
-                            logger.log(Level.FINE, "adding {0}", value);
+                            logger.log(Level.FINE, "adding value from fields {0}", value);
                             row.add(value);
                         } else {
-                            logger.log(Level.FINE, "adding {0}", "");
+                            logger.log(Level.FINE, "adding empty value {0}", "");
                             row.add("");
                         }
                     }
+
+                    logger.log(Level.FINE, "row length is equal to field length {0}", row.size()==fieldSet.size());
 
                     rows.add(row);
 
