@@ -31,12 +31,12 @@ public class EsSelectItemVisitorAdapter extends SelectItemVisitorAdapter {
 
         logger.log(Level.FINE, "aliasExpression length {0}", aliasExpression.length);
 
-        logger.log(Level.FINE, "aliasExpression {0} {1}", new Object[]{aliasExpression[0], aliasExpression[1]});
-
         if (aliasExpression.length > 1) {
+            logger.log(Level.FINE, "aliasExpression {0} {1}", new Object[]{aliasExpression[0], aliasExpression[1]});
             this.field = aliasExpression[0];
             this.alias = aliasExpression[1];
         } else {
+            logger.log(Level.FINE, "aliasExpression {0}", new Object[]{aliasExpression[0]});
             this.field = string;
         }
 
