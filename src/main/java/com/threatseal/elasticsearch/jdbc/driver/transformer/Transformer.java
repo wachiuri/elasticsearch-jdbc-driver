@@ -312,6 +312,7 @@ public class Transformer {
 
         List<SelectItem> selectItems = selectStatement.getSelectItems();
 
+        /*
         if (selectItems.size() > 0) {
             selectItems.forEach(selectItem -> {
                 if (selectItem instanceof SelectExpressionItem) {
@@ -330,6 +331,7 @@ public class Transformer {
                 }
             });
         }
+        */
 
         logger.log(Level.FINE, "source builder {0}", sourceBuilder);
 
