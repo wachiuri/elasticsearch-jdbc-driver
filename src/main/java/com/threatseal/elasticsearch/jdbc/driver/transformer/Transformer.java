@@ -310,9 +310,10 @@ public class Transformer {
                 .docValueField("Message.username")
                 .docValueField("Message.ipaddress");
 
-        List<SelectItem> selectItems = selectStatement.getSelectItems();
 
         /*
+        List<SelectItem> selectItems = selectStatement.getSelectItems();
+
         if (selectItems.size() > 0) {
             selectItems.forEach(selectItem -> {
                 if (selectItem instanceof SelectExpressionItem) {
